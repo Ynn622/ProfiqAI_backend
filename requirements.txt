@@ -1,0 +1,12 @@
+openai
+openai-agents
+line-bot-sdk
+yfinance
+beautifulsoup4
+lxml
+cloudscraper
+stockstats
+python-dotenv
+fastapi
+uvicorn[standard]
+python-multipart
