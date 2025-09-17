@@ -54,24 +54,12 @@ def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) ->
     data = data[data.index >= start]  # 確保資料從指定日期開始
     data = data.dropna().round(2)  # 移除包含NaN的行 
     
-    # yfinance 資料異常
-    date_to_add = "2025-08-01"
-    if (date_to_add not in data.index) and (start < date_to_add):
-        data.loc[date_to_add] = [np.nan] * len(data.columns)
-        data = data.sort_index()
-    
     # 籌碼面資料
     if symbol not in ("^TWII", "^TWOII"): 
         chip_data = get_chip_data(symbol,data.index[0],data.index[-1])
         if not chip_data.empty:
-            if len(chip_data)+1==len(data):
-                chip_data.loc[len(chip_data)] = [np.nan] * len(chip_data.columns)
-            chip_data.index = data.index
+            chip_data = chip_data.reindex(data.index)
             data = pd.concat([data, chip_data], axis=1)
-    
-    # yfinance 資料異常
-    if date_to_add in data.index and pd.isna(data.loc[date_to_add]).any():
-        data = data.drop(date_to_add)
 
     return data
 
@@ -229,8 +217,11 @@ def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
         bs_table = bs(web, "html.parser").find("table", class_="t01").find_all("tr")[7:-1]  # 跳過前7行和最後一行
         col = ["外資", "投信", "自營商", "三大法人合計"]
         data = []
+        date_index = []
         for i in bs_table[::-1]: # 反向遍歷，因為最新的資料在最後一行
-            tds = i.find_all("td")[1:5]
+            tds = i.find_all("td")[:5]
+            date = tds.pop(0).text.split('/')   # 取出日期
+
             texts = [td.text.strip() for td in tds]
             # 偵測是否有 '--'
             if any(text == '--' for text in texts):
@@ -238,7 +229,10 @@ def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
             # 正常處理數字
             row = [int(text.replace(",", "")) for text in texts]
             data.append(row)
-        df = pd.DataFrame(data, columns=col)
+            # 處理日期
+            date_str = f"{int(date[0])+1911}-{date[1]}-{date[2]}"
+            date_index.append(date_str)
+        df = pd.DataFrame(data, columns=col, index=date_index)
         return df
     except Exception as e:
         print(f"   Error: get_chip_data({symbol}): {str(e)}")
