@@ -87,5 +87,6 @@ def health_check():
 if __name__ == '__main__':
     import uvicorn
     port = int(os.environ.get("PORT", 7860))  # Hugging Face Spaces 預設使用 7860 port
-    uvicorn.run("app:app", host='0.0.0.0', port=port)
+    reload_mode = os.environ.get("RELOAD", "false").lower() == "true"  # 環境變數控制是否啟用 reload
+    uvicorn.run("app:app", host='0.0.0.0', port=port, reload=reload_mode)
     # uvicorn app:app --port 7860 --reload
