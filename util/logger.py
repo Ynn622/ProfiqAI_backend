@@ -3,6 +3,11 @@ import inspect
 from datetime import datetime
 import pytz
 
+# === 顏色設定 ===
+RESET = "\033[0m"
+PURPLE = "\033[95m"   # 紫色
+RED = "\033[91m"      # 紅色
+
 def current_time():
     # 取得台灣時區
     taiwan_tz = pytz.timezone("Asia/Taipei")
@@ -20,11 +25,11 @@ def log_print(func):
             try:
                 arg_str = f"{', '.join(map(str, args))}" if args else ""
                 kwarg_str = f"{kwargs}" if kwargs else ""
-                print(f"{current_time()} |  🟣 [FunctionCall] {func_name}({arg_str}{kwarg_str})")
+                print(f"{current_time()} | {PURPLE}🟣 [FunctionCall] {func_name}({arg_str}{kwarg_str}){RESET}")
                 return await func(*args, **kwargs)
             except Exception as e:
                 main_arg = args[0] if args else None
-                print(f"{current_time()} |  🔴 [Error] {func_name}({main_arg}): {str(e)}")
+                print(f"{current_time()} | {RED}🔴 [Error] {func_name}({main_arg}): {str(e)}{RESET}")
                 raise
         return async_wrapper
     else:  # 如果是普通 def
@@ -34,10 +39,10 @@ def log_print(func):
             try:
                 arg_str = f"{', '.join(map(str, args))}" if args else ""
                 kwarg_str = f"{kwargs}" if kwargs else ""
-                print(f"{current_time()} |  🟣 [Function] {func_name}({arg_str}{kwarg_str})")
+                print(f"{current_time()} | {PURPLE}🟣 [Function] {func_name}({arg_str}{kwarg_str}){RESET}")
                 return func(*args, **kwargs)
             except Exception as e:
                 main_arg = args[0] if args else None
-                print(f"{current_time()} |  🔴 [Error] {func_name}({main_arg}): {str(e)}")
+                print(f"{current_time()} | {RED}🔴 [Error] {func_name}({main_arg}): {str(e)}{RESET}")
                 raise
         return sync_wrapper
