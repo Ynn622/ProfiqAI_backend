@@ -48,12 +48,12 @@ def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) ->
     
     # 指標計算
     if sdf_indicator_list:
-        indicator_df = get_technical_indicators(data, sdf_indicator_list)
         try:
+            indicator_df = get_technical_indicators(data, sdf_indicator_list)
             data = pd.concat([data, indicator_df], axis=1)
         except Exception as e:
             printf(f"🔴 [Error] 指標計算錯誤: {str(e)}", color=Color.RED)
-
+    
     data = data[data.index >= start]  # 確保資料從指定日期開始
     data = data.dropna().round(2)  # 移除包含NaN的行 
     
@@ -149,6 +149,11 @@ def get_technical_indicators(data, sdf_indicator_list):
         sdf_indicator_list (list): 欲計算的技術指標清單
     """
     indicator_dict = {
+        'close':'Close',
+        'open':'Open',
+        'high':'High',
+        'low':'Low',
+        'volume':'Volume',
         'close_5_sma':'SMA_5',
         'close_10_sma':'SMA_10',
         'close_20_sma':'SMA_20',
@@ -172,9 +177,19 @@ def get_technical_indicators(data, sdf_indicator_list):
 
     # 計算技術指標
     stock_df = Sdf.retype(data)
-    indicator_data = stock_df[sdf_indicator_list].copy()
+    
+    # 過濾掉 stockstats 不支援的指標，避免 KeyError
+    valid_indicators = [col for col in sdf_indicator_list if col in stock_df.columns]
+
+    # 取出需要的指標資料
+    indicator_data = stock_df[valid_indicators].copy()
+    
     indicator_data.rename(columns=indicator_dict, inplace=True)  # 將指標名稱轉換
     indicator_data = indicator_data.round(2)
+    
+    # 避免重複：只保留 data 裡沒有的欄位
+    new_cols = [col for col in indicator_data.columns if col not in data.columns]
+    indicator_data = indicator_data[new_cols]
     
     return indicator_data
 
