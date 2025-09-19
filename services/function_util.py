@@ -9,6 +9,7 @@ import numpy as np
 import re
 import html
 import time
+from util.logger import printf, Color
 
 def fetchStockInfo(stockName: str) -> str:
     """
@@ -38,10 +39,12 @@ def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) ->
     data["Volume"] = data["Volume"]*0.001  # 將成交量轉換為張數
     
     # 爬取現在即時股價資料
-    live_df = get_live_price(symbol)
-    if not live_df.empty:
+    try:
+        live_df = get_live_price(symbol)
         data = data.drop(live_df.index[0], errors='ignore') 
-        data = pd.concat([data,live_df])
+        data = pd.concat([data, live_df])
+    except Exception as e:
+        printf(f"🔴 [Error] 爬取即時股價資料錯誤: {str(e)}", color=Color.RED)
     
     # 指標計算
     if sdf_indicator_list:
@@ -49,17 +52,18 @@ def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) ->
         try:
             data = pd.concat([data, indicator_df], axis=1)
         except Exception as e:
-            print(f"🔴 [Error] 指標計算錯誤: {str(e)}")
+            printf(f"🔴 [Error] 指標計算錯誤: {str(e)}", color=Color.RED)
 
     data = data[data.index >= start]  # 確保資料從指定日期開始
     data = data.dropna().round(2)  # 移除包含NaN的行 
     
     # 籌碼面資料
-    if symbol not in ("^TWII", "^TWOII"): 
-        chip_data = get_chip_data(symbol,data.index[0],data.index[-1])
-        if not chip_data.empty:
-            chip_data = chip_data.reindex(data.index)
+    if symbol not in ("^TWII", "^TWOII"):
+        try:
+            chip_data = get_chip_data(symbol, data.index[0], data.index[-1]).reindex(data.index)
             data = pd.concat([data, chip_data], axis=1)
+        except Exception as e:
+            printf(f"🔴 [Error] 籌碼面資料錯誤: {str(e)}", color=Color.RED)
 
     return data
 
@@ -180,25 +184,21 @@ def get_live_price(symbol: str) -> pd.DataFrame:
     用於取得最新即時股價資料。
     get_stock_price() 會自動調用此函數。
     """
-    try:
-        header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"}
-        url = f"https://tw.stock.yahoo.com/quote/{symbol}"
-        web = requests.get(url,headers=header,timeout=5)
-        bs_web = bs(web.text,"html.parser")
-        table = bs_web.find("ul",class_="D(f) Fld(c) Flw(w) H(192px) Mx(-16px)").find_all("li")
-        name = ["Close","Open","High","Low","Volume"]
-        dic = {}
-        s_list = [0,1,2,3,5 if symbol in ("^TWII", "^TWOII") else 9]  # 大盤&櫃買 抓取欄位不同
-        for i in range(5):
-            search = s_list[i]
-            row = float(table[search].find_all("span")[1].text.replace(",",""))
-            dic[name[i]]=[row]
-        nowtime = bs_web.find("time").find_all("span")[2].text
-        nowtime = pd.to_datetime(nowtime).strftime("%Y-%m-%d")
-        return pd.DataFrame(dic,index=[nowtime])
-    except Exception as e:
-        print(f"   Error: get_live_price({symbol}): {str(e)}")
-        return pd.DataFrame()  # 返回空的 DataFrame
+    header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"}
+    url = f"https://tw.stock.yahoo.com/quote/{symbol}"
+    web = requests.get(url,headers=header,timeout=5)
+    bs_web = bs(web.text,"html.parser")
+    table = bs_web.find("ul",class_="D(f) Fld(c) Flw(w) H(192px) Mx(-16px)").find_all("li")
+    name = ["Close","Open","High","Low","Volume"]
+    dic = {}
+    s_list = [0,1,2,3,5 if symbol in ("^TWII", "^TWOII") else 9]  # 大盤&櫃買 抓取欄位不同
+    for i in range(5):
+        search = s_list[i]
+        row = float(table[search].find_all("span")[1].text.replace(",",""))
+        dic[name[i]]=[row]
+    nowtime = bs_web.find("time").find_all("span")[2].text
+    nowtime = pd.to_datetime(nowtime).strftime("%Y-%m-%d")
+    return pd.DataFrame(dic, index=[nowtime])
 
  
 def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
@@ -207,36 +207,32 @@ def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
     get_stock_price() 會自動調用此函數。
     """
     if symbol in ("^TWII", "^TWOII"):
-        print(f"  -function_call: 不提供籌碼面資料: {symbol}")
+        printf(f"[function] get_chip_data(): 不提供籌碼面資料: {symbol}", color=Color.PURPLE)
         return pd.DataFrame()
-    try:
-        symbol = symbol.split(".")[0]  # 去除後綴
-        url = f"https://fubon-ebrokerdj.fbs.com.tw/z/zc/zcl/zcl.djhtm?a={symbol}&c={start}&d={end}"
-        scraper = cloudscraper.create_scraper()  # 使用 cloudscraper 爬取
-        web = scraper.get(url).text
-        bs_table = bs(web, "html.parser").find("table", class_="t01").find_all("tr")[7:-1]  # 跳過前7行和最後一行
-        col = ["外資", "投信", "自營商", "三大法人合計"]
-        data = []
-        date_index = []
-        for i in bs_table[::-1]: # 反向遍歷，因為最新的資料在最後一行
-            tds = i.find_all("td")[:5]
-            date = tds.pop(0).text.split('/')   # 取出日期
+    symbol = symbol.split(".")[0]  # 去除後綴
+    url = f"https://fubon-ebrokerdj.fbs.com.tw/z/zc/zcl/zcl.djhtm?a={symbol}&c={start}&d={end}"
+    scraper = cloudscraper.create_scraper()  # 使用 cloudscraper 爬取
+    web = scraper.get(url).text
+    bs_table = bs(web, "html.parser").find("table", class_="t01").find_all("tr")[7:-1]  # 跳過前7行和最後一行
+    col = ["外資", "投信", "自營商", "三大法人合計"]
+    data = []
+    date_index = []
+    for i in bs_table[::-1]: # 反向遍歷，因為最新的資料在最後一行
+        tds = i.find_all("td")[:5]
+        date = tds.pop(0).text.split('/')   # 取出日期
 
-            texts = [td.text.strip() for td in tds]
-            # 偵測是否有 '--'
-            if any(text == '--' for text in texts):
-                continue  # 不繼續處理這筆資料
-            # 正常處理數字
-            row = [int(text.replace(",", "")) for text in texts]
-            data.append(row)
-            # 處理日期
-            date_str = f"{int(date[0])+1911}-{date[1]}-{date[2]}"
-            date_index.append(date_str)
-        df = pd.DataFrame(data, columns=col, index=date_index)
-        return df
-    except Exception as e:
-        print(f"   Error: get_chip_data({symbol}): {str(e)}")
-        return pd.DataFrame()
+        texts = [td.text.strip() for td in tds]
+        # 偵測是否有 '--'
+        if any(text == '--' for text in texts):
+            continue  # 不繼續處理這筆資料
+        # 正常處理數字
+        row = [int(text.replace(",", "")) for text in texts]
+        data.append(row)
+        # 處理日期
+        date_str = f"{int(date[0])+1911}-{date[1]}-{date[2]}"
+        date_index.append(date_str)
+    df = pd.DataFrame(data, columns=col, index=date_index)
+    return df
 
 
 def get_live_stock_info(stockID: str) -> dict:
