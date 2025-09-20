@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import asyncio
 
 from services.function_tools import askAI
+from util.logger import log_print
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 class ChatRequest(BaseModel):
@@ -11,6 +12,7 @@ class ChatRequest(BaseModel):
     question: str
 
 @router.post("/chatBot")
+@log_print
 def ask(req: ChatRequest):
     chat_response = asyncio.run(askAI(req.question, model=req.model.lower()))
     return JSONResponse(content={'response': chat_response})
