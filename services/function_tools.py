@@ -1,31 +1,21 @@
 from agents import function_tool
 from agents import Agent, Runner, function_tool
-from zoneinfo import ZoneInfo
-from datetime import datetime
 
 from services.function_util import *  # 引入 util.py 中的所有輔助函數
 from util.logger import log_print
+from util.nowtime import getTaiwanTime
 
-async def askAI(question):
+async def askAI(question, model):
     agent = Agent(
         name="Finance Agent",
-        model="gpt-4.1-mini",
-        instructions="你是一名台灣股票分析師，請使用提供的工具，分析股票各面向並給予操作方向＆價位建議。（1.如果查無資料，可嘗試使用工具查詢代碼\n 2.若未提及需要分析的時間&技術指標時，預設為一個月且使用5&10MA，請先查詢今日日期\n 3.若無特別提及分析面向，請查詢股價&新聞）\n4.用簡單、完整又有禮貌的方式回答問題",
-        tools=[toolGetCurrentTime, toolFetchStockInfo, toolGetStockPrice, toolFetchStockNews, toolFetchTwiiNews, toolFetchETFIngredients],
+        model=model,
+        instructions=f"你是一名台灣股票分析師，請使用提供的工具，分析股票各面向並給予操作方向＆價位建議。（1.如果查無資料，可嘗試使用工具查詢代碼\n 2.若未提及需要分析的時間&技術指標時，預設為一個月且使用5&10MA，今天是{getTaiwanTime()}\n 3.若無特別提及分析面向，請查詢股價&新聞）\n4.用簡單、完整又有禮貌的方式回答問題，若資訊較多請使用md格式",
+        tools=[toolFetchStockInfo, toolGetStockPrice, toolFetchStockNews, toolFetchTwiiNews, toolFetchETFIngredients],
     )
     result = await Runner.run(agent, question)
     #print("Agent:",result.final_output)
     return result.final_output
 
-@function_tool
-@log_print
-async def toolGetCurrentTime() -> str:
-    """
-    取得目前的時間。
-    Returns: 
-        str: 當前時間的字串，格式為 "YYYY-MM-DD HH:MM:SS"。
-    """
-    return datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d %H:%M:%S")
 
 @function_tool
 @log_print
