@@ -6,6 +6,7 @@ import numpy as np
 from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
+from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
 
 router = APIRouter(prefix="/View", tags=["View"])
 
@@ -53,5 +54,37 @@ def check_stock_info(stock: str):
     try:
         stockID, stockName = fetchStockInfo(stock)
         return JSONResponse(content={'stockID': stockID, 'stockName': stockName})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/basicStockInfo")
+@log_print
+def basic_stock_info(stockID: str):
+    """
+    取得指定股票的「基本面」資訊。
+    """
+    try:
+        pe = get_PE_Ratio(stockID)
+        r = get_revenue(stockID)
+        eps = get_EPS(stockID)
+        pro = get_profile(stockID)
+        dividend = get_dividend(stockID)
+
+        basic_data = {**pe, **pro}
+
+        basic_data["eps"] = eps["eps"][0]
+        basic_data["epsGap"] = round(eps["eps"][0]-eps["eps"][1],2)
+        basic_data["MoM"] = r["mom"][0]
+        basic_data["YoY"] = r["yoy"][0]
+        basic_data["stockSplits"] = dividend["capitalGains"][0]
+        basic_data["dateDividend"] = dividend["date"][0]
+
+        json_data = {
+            "basicData": basic_data,
+            "revenue": r,
+            "eps": eps,
+            "dividend": dividend,
+        }
+        return JSONResponse(content=json_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
