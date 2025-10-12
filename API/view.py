@@ -15,7 +15,7 @@ router = APIRouter(prefix="/View", tags=["View"])
 @log_print
 def stock_data(stock_id: str, start_date: str = "2024-05-10"):
     """
-    取得指定股票的歷史股價與籌碼面資料。
+    取得指定股票 股價資料表。
     """
     try:
         stockID, stockName = fetchStockInfo(stock_id)
@@ -38,7 +38,7 @@ def stock_data(stock_id: str, start_date: str = "2024-05-10"):
 @log_print
 def stock_info(stock_id: str):
     """
-    取得指定股票的即時股價與相關資訊。
+    取得指定股票 即時股價OHLC＆漲跌幅。
     """
     try:
         info = get_live_stock_info(stock_id)
@@ -50,7 +50,7 @@ def stock_info(stock_id: str):
 @log_print
 def check_stock_info(stock: str):
     """
-    檢查指定股票的基本資訊。
+    檢查指定股票 是否存在。
     """
     try:
         stockID, stockName = fetchStockInfo(stock)
@@ -58,11 +58,11 @@ def check_stock_info(stock: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/basicStockInfo")
+@router.get("/section/basicInfo")
 @log_print
-def basic_stock_info(stockID: str):
+def basic_info(stockID: str):
     """
-    取得指定股票的「基本面」資訊。
+    取得指定股票「基本面」資訊。
     """
     try:
         pe = get_PE_Ratio(stockID)
@@ -90,11 +90,11 @@ def basic_stock_info(stockID: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/getChipData")
+@router.get("/section/chipInfo")
 @log_print
-def get_chip_data_endpoint(stockID: str):
+def chip_info(stockID: str):
     """
-    取得 三大法人、融資、融券 資料。
+    取得指定股票「籌碼面」資料。 （三大法人、融資、融券）
     """
     today = date.today().strftime("%Y-%m-%d")
     sixty_days_ago = (date.today() - timedelta(days=60)).strftime("%Y-%m-%d")
