@@ -2,8 +2,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
+from datetime import date, timedelta
 
-from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info
+from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info, get_margin_data, get_chip_data
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
 from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
@@ -88,3 +89,26 @@ def basic_stock_info(stockID: str):
         return JSONResponse(content=json_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/getChipData")
+@log_print
+def get_chip_data_endpoint(stockID: str):
+    """
+    取得 三大法人、融資、融券 資料。
+    """
+    today = date.today().strftime("%Y-%m-%d")
+    sixty_days_ago = (date.today() - timedelta(days=60)).strftime("%Y-%m-%d")
+    
+    margin_data = get_margin_data(stockID, start=sixty_days_ago, end=today)
+    chip_data = get_chip_data(stockID, start=sixty_days_ago, end=today)
+    all_data = pd.concat([margin_data, chip_data], axis=1)
+    result = {
+            "Date": all_data.index.tolist(),
+            "MarginBuy": all_data["融資增減"].tolist(),
+            "MarginSell": all_data["融券增減"].tolist(),
+            "MarginRatio": all_data["融券券資比%"].tolist(),
+            "Foreign": all_data["外資"].tolist(),
+            "Dealer": all_data["投信"].tolist(),
+            "Investor": all_data["自營商"].tolist(),
+        }
+    return result

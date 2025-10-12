@@ -250,6 +250,45 @@ def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
     return df
 
 
+def get_margin_data(symbol: str, start: str, end: str) -> pd.DataFrame:
+    """
+    用於取得最新融資融券資料。
+    """
+    # 取得網頁內容
+    symbol = symbol.split(".")[0]  # 去除後綴
+    url = f'https://fubon-ebrokerdj.fbs.com.tw/z/zc/zcn/zcn.djhtm?a={symbol}&c={start}&d={end}'
+    scraper = cloudscraper.create_scraper()  # 使用 cloudscraper 爬取
+    web = scraper.get(url).text  # 開啟網站
+    bs_table = bs(web, "html.parser").find("table", class_="t01").find_all("tr")[7:-1]  # 跳過前7行和最後一行
+    col = ['融資買進','融資賣出','融資現償','融資餘額','融資增減','融資限額','融資使用率%','融券賣出','融券買進','融券券償','融券餘額','融券增減','融券券資比%','資券相抵']
+
+    def parseNum(text):
+            text = text.replace(',', '').replace('%', '')
+            try:
+                return float(text) if '.' in text else int(text)  # 若有小數點 → 轉 float
+            except ValueError:
+                return text  # 保留原字串以防特殊情況
+        
+    data = []
+    date_index = []
+    for i in bs_table[::-1]:  # 反向遍歷，因為最新的資料在最後一行
+        tds = i.find_all("td")
+        date = tds.pop(0).text.split('/')   # 取出日期
+        texts = [td.text.strip() for td in tds]
+        
+        # 偵測是否有 '--'
+        if any(text == '--' for text in texts):
+            continue  # 不繼續處理這筆資料
+        # 正常處理數字
+        row = [parseNum(text) for text in texts]
+        data.append(row)
+        # 處理日期
+        date_str = f"{int(date[0])+1911}-{date[1]}-{date[2]}"
+        date_index.append(date_str)
+    df = pd.DataFrame(data, columns=col, index=date_index)[['融資增減', '融券增減', '融券券資比%']]
+    return df
+
+
 def get_live_stock_info(stockID: str) -> dict:
     """
     用於取得最新即時股價資料與相關資訊。
