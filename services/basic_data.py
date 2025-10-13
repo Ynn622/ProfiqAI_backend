@@ -101,7 +101,7 @@ def get_dividend(stockID):
     獲取 股票股利、現金股利。
     '''
     dividendWeb = requests.get(f'https://histock.tw/stock/{stockID}/%E9%99%A4%E6%AC%8A%E9%99%A4%E6%81%AF')
-    dividendSoup = bs(dividendWeb.text)
+    dividendSoup = bs(dividendWeb.text, 'html.parser')
     divTable = dividendSoup.find('table')
     trs = divTable.find_all('tr')
     col = [th.get_text(strip=True) for th in trs[0].find_all('th')]
