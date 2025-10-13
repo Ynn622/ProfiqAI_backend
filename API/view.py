@@ -111,4 +111,5 @@ def chip_info(stockID: str):
             "Dealer": all_data["投信"].tolist(),
             "Investor": all_data["自營商"].tolist(),
         }
+    result = nan_to_none(result)
     return result
