@@ -68,14 +68,14 @@ def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) ->
     return data
 
 
-def FetchStockNews(stock_name: str) -> pd.DataFrame:
+def FetchStockNews(stock_name: str, num: int = 10) -> pd.DataFrame:
     """
     爬取指定股票的最新新聞資料。
     toolFetchStockNews() 會自動調用此函數。
     """
     data = []
     col = ["Date","Title","Content"]
-    url = f"https://ess.api.cnyes.com/ess/api/v1/news/keyword?q={stock_name}&limit=10&page=1"
+    url = f"https://ess.api.cnyes.com/ess/api/v1/news/keyword?q={stock_name}&limit={num}&page=1"
     json_news = requests.get(url).json()['data']['items']
     for item in json_news:
         id = item['newsId']

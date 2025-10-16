@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 import pandas as pd
-import numpy as np
 from datetime import date, timedelta
 
-from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info, get_margin_data, get_chip_data
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
+
+from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info, get_margin_data, get_chip_data
 from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
+from services.news_data import stock_news_split_word
 
 router = APIRouter(prefix="/View", tags=["View"])
 
@@ -113,3 +114,12 @@ def chip_info(stockID: str):
         }
     result = nan_to_none(result)
     return result
+
+@router.get("/news/wordCloud")
+@log_print
+def news_word_cloud(stockID: str):
+    """
+    取得指定股票「新聞」資料的詞雲。
+    """
+    all_data, filtered_counts = stock_news_split_word(stockID)
+    return JSONResponse(content={'wordCounts': filtered_counts})
