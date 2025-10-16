@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
+from util.nowtime import getTaiwanTime
 
 from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info, get_margin_data, get_chip_data
 from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
@@ -123,4 +124,4 @@ def news_word_cloud(stockID: str):
     取得指定股票「新聞」資料的詞雲。
     """
     all_data, filtered_counts = stock_news_split_word(stockID)
-    return JSONResponse(content={'wordCounts': filtered_counts})
+    return JSONResponse(content={'wordCounts': filtered_counts, 'updateTime': getTaiwanTime()})
