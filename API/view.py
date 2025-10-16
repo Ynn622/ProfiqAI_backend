@@ -103,6 +103,7 @@ def chip_info(stockID: str):
     margin_data = get_margin_data(stockID, start=sixty_days_ago, end=today)
     chip_data = get_chip_data(stockID, start=sixty_days_ago, end=today)
     all_data = pd.concat([margin_data, chip_data], axis=1)
+    all_data.sort_index(ascending=True, inplace=True)
     result = {
             "Date": all_data.index.tolist(),
             "MarginBuy": all_data["融資增減"].tolist(),
