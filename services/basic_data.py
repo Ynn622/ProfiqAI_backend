@@ -33,8 +33,8 @@ def get_revenue(stockID):
         month = item.find('div',class_='W(65px) Ta(start)').text
         detail = list(item.find("ul").stripped_strings)
         rows.append({"Month": month,
-                     "MoM": float(detail[1].replace('%','')),
-                     "YoY": float(detail[3].replace('%',''))})
+                     "MoM": float(detail[1].replace('%','').replace(',','')),
+                     "YoY": float(detail[3].replace('%','').replace(',',''))})
 
     df_momyoy = pd.DataFrame(rows)
     json_momyoy = {
