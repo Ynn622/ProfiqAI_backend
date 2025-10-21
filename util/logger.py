@@ -43,6 +43,6 @@ def log_print(func):
                 raise
         return sync_wrapper
 
-def printf(*args, color: Color = Color.BLUE, sep=" ", end="\n"):
+def Log(*args, color: Color = Color.BLUE, sep=" ", end="\n"):
     message = sep.join(str(arg) for arg in args)
     print(f"{getTaiwanTime(ms=True)} | {color.value}{message}{Color.RESET.value}", end=end)

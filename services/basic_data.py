@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup as bs
 import requests
 import pandas as pd
-from util.logger import printf, Color
+from util.logger import Log, Color
 
 def get_PE_Ratio(stockID):
     '''
@@ -19,7 +19,7 @@ def get_PE_Ratio(stockID):
             PE_ratio = float(PE_ratio_table[0])
             PE_ratio_compare = float(PE_ratio_table[1])
     except Exception as e:
-        printf(f"🔴 [Error] 獲取 PE Ratio 資訊發生錯誤: {str(e)}", color=Color.RED)
+        Log(f"🔴 [Error] 獲取 PE Ratio 資訊發生錯誤: {str(e)}", color=Color.RED)
         PE_ratio = None
         PE_ratio_compare = None
     
@@ -49,7 +49,7 @@ def get_revenue(stockID):
             "yoy": df_momyoy["YoY"].tolist()
         }
     except Exception as e:
-        printf(f"🔴 [Error] 獲取 MoM/YoY 資訊發生錯誤: {str(e)}", color=Color.RED)
+        Log(f"🔴 [Error] 獲取 MoM/YoY 資訊發生錯誤: {str(e)}", color=Color.RED)
         json_momyoy = {
             "month": [],
             "mom": [],
@@ -78,7 +78,7 @@ def get_EPS(stockID):
             "eps": df_eps["eps"].tolist()
         }
     except Exception as e:
-        printf(f"🔴 [Error] 獲取 EPS 資訊發生錯誤: {str(e)}", color=Color.RED)
+        Log(f"🔴 [Error] 獲取 EPS 資訊發生錯誤: {str(e)}", color=Color.RED)
         json_eps = {
             "quarter": [],
             "eps": []
@@ -116,7 +116,7 @@ def get_profile(stockID):
                 key_en = financial_metrics[key_zh]
                 data_profile[key_en] = value
     except Exception as e:
-        printf(f"🔴 [Error] 獲取 Profile 資訊發生錯誤: {str(e)}", color=Color.RED)
+        Log(f"🔴 [Error] 獲取 Profile 資訊發生錯誤: {str(e)}", color=Color.RED)
         data_profile = {
             "GPM": None,
             "ROA": None,
@@ -150,7 +150,7 @@ def get_dividend(stockID):
         "capitalGains": df["現金股利"].tolist()
         }
     except Exception as e:
-        printf(f"🔴 [Error] 獲取 Dividend 資訊發生錯誤: {str(e)}", color=Color.RED)
+        Log(f"🔴 [Error] 獲取 Dividend 資訊發生錯誤: {str(e)}", color=Color.RED)
         json_dividend = {
             "date": [],
             "stockSplits": [],
