@@ -8,7 +8,7 @@ import yfinance as yf
 import re
 import html
 import time
-import os
+from util.config import Env  # 確保環境變數被載入
 from util.logger import Log, Color
 
 def fetchStockInfo(stockName: str) -> str:
@@ -86,7 +86,7 @@ def FetchStockNews(stock_name: str, num: int = 10) -> pd.DataFrame:
 
     news_content = []
     for i, url in enumerate(urls):
-        if os.environ.get("RELOAD")=='true': print(f"抓取新聞中 - {i+1}/{len(urls)} ", end="\r")  # debug 時 顯示進度
+        if Env.RELOAD: print(f"抓取新聞中 - {i+1}/{len(urls)} ", end="\r")  # debug 時 顯示進度
         try:
             news = requests.get(url).text
             news_find = bs(news,'html.parser').find("section",class_="article-content__editor").find_all("p")[:-1]
