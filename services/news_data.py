@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 import jieba
 from collections import Counter
+import os
 
 from services.function_util import fetchStockInfo
 
@@ -18,54 +19,71 @@ with open("data/stockName.txt", "r", encoding="utf-8") as f:
     for line in f: 
         jieba.add_word(line.strip())  # 將公司名稱加入 jieba 詞庫
 
-def get_udn_news(stock_id, page_limit=1) -> pd.DataFrame:
+def news_summary(stock_id: str, page: int=1) -> pd.DataFrame:
     """
-    爬取 udn 指定股票的新聞資料，並返回包含新聞標題、網址、內容的 DataFrame。
+    爬取 udn新聞網 及 cnyes鉅亨網 指定股票的新聞摘要。
+    Returns:
+        DataFrame: 時間戳、新聞標題、摘要、網址、來源。
+    """
+    _, stockName = fetchStockInfo(stock_id)
+
+    udn_df = get_udn_news_summary(f'{stockName} {stock_id}', page=page)
+    cnyes_df = get_cnyes_news_summary(stock_id, page=page)
+
+    df = pd.concat([udn_df, cnyes_df], ignore_index=True)
+    df.sort_values(by='TimeStamp', ascending=False, inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    return df
+
+def get_udn_news_summary(keyword, page=1) -> pd.DataFrame:
+    """
+    爬取 udn新聞網 指定股票的新聞資料「摘要」。
+    Returns:
+        DataFrame: 時間戳、新聞標題、摘要、網址、來源。
     """
     data = []
-    col = ["Date", "URL", "Title", "Content"]
-    _, stock_name = fetchStockInfo(stock_id)
-    stock_name = re.sub(r'[-*].*$', '', stock_name)  # 去除股票名稱中的特殊字符
-    page = 1
-    while 1:
-        if page > page_limit:
-            print(f"已達設定的頁數上限：{page-1}{' '*50}", end="\r")
-            break
-        url = f"https://udn.com/api/more?page={page}&id=search:{stock_name}%20{stock_id}&channelId=2&type=searchword&last_page=100"
-        json_news = requests.get(url).json()['lists']
-        if len(json_news) == 0:
-            print(f"已經抓取到最後一頁：{page-1}{' '*50}", end="\r")
-            break
-        for i in range(len(json_news)):
-            # print(f"抓取新聞中：{stock_name} - Page: {page} - {i+1}/{len(json_news)+1} ", end="")
-            item = json_news[i]
-            try:
-                title = item['title']
-                t = item['time']['date']
-                news_time = datetime.strptime(t, "%Y-%m-%d %H:%M")
-                # print(f"日期: {news_time}{' '*30}", end="\r")
-                if time.mktime(time.gmtime())-30*24*3600>news_time.timestamp(): break  # 只抓最近30天的新聞
-                news_url = item['titleLink']
-                if not news_url.startswith("https://udn.com/news/story"): continue   # 非新聞頁面
-                news = requests.get(news_url).text
-                news_find = bs(news,'html.parser').find("section",class_="article-content__editor").find_all("p")[:-1]
-                news_data = "\n".join(x.text.strip() for x in news_find)
-                news_data = news_data.replace("\n\n","\n").strip()
-                data.append([news_time, news_url, title, news_data])
-            except Exception as e:
-                print(f"抓取新聞錯誤：{e}", end="\r")
-                continue
-        page += 1
-            
-    df = pd.DataFrame(data, columns=col).set_index("Date")
-    print(f"\rDone: 新聞資料-載入完畢！{' '*40}")
-    return df
+    col = ["TimeStamp", "Title", "Summary", "Url", "Source"]
+
+    udn_url = f"https://udn.com/api/more?page={page}&id=search:{keyword}&channelId=2&type=searchword&last_page=100"
+    udn_json_news = requests.get(udn_url).json()['lists']
+    for item in udn_json_news:
+        url = item['titleLink']
+        title = item['title']
+        summary = item['paragraph']
+        time_str = item['time']['dateTime']
+        timestamp = int(datetime.strptime(time_str, "%Y-%m-%d %H:%M").timestamp())   # 轉成時間戳（單位：秒）
+        data.append([timestamp, title, summary, url, 'udn'])
+    return pd.DataFrame(data, columns=col)
+
+def get_cnyes_news_summary(keyword, page=1) -> pd.DataFrame:
+    """
+    爬取 cnyes鉅亨網 指定股票的新聞資料「摘要」。
+    Returns:
+        DataFrame: 時間戳、新聞標題、摘要、網址、來源。
+    """
+    data = []
+    col = ["TimeStamp", "Title", "Summary", "Url", "Source"]
+
+    cnyes_url = f"https://ess.api.cnyes.com/ess/api/v1/news/keyword?q={keyword}&limit=20&page={page}"
+    cnyes_json_news = requests.get(cnyes_url).json()['data']['items']
+    for item in cnyes_json_news:
+        id = item['newsId']
+        url = f"https://news.cnyes.com/news/id/{id}"
+        title = item['title'].replace('⊕','*')
+        title = re.sub(r'<.*?>', '', title)
+        if "盤中速報" in title: continue   # 跳過指定關鍵字
+        timestamp = item['publishAt']+28800
+        summary = item['summary']
+        data.append([timestamp, title, summary, url, 'cnyes'])
+    return pd.DataFrame(data, columns=col)
+
 
 def stock_news_split_word(stock_id: str):
     """
     對指定股票的新聞內容 進行斷詞處理。
     """
-    df = get_udn_news(stock_id, page_limit=1)  # 取得新聞資料
+    from services.function_util import FetchStockNews
+    df = FetchStockNews(stock_id, num=15)  # 取得新聞資料
     text = ' '.join(df['Content'].dropna())
     clean_text = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\s]', '', text)  # 移除非中文字、英文字母和數字
     cut_text = ' '.join(jieba.cut(clean_text))  # 斷詞

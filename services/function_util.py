@@ -5,10 +5,10 @@ import requests
 from bs4 import BeautifulSoup as bs
 from datetime import datetime, timedelta
 import yfinance as yf
-import numpy as np
 import re
 import html
 import time
+import os
 from util.logger import Log, Color
 
 def fetchStockInfo(stockName: str) -> str:
@@ -73,32 +73,33 @@ def FetchStockNews(stock_name: str, num: int = 10) -> pd.DataFrame:
     爬取指定股票的最新新聞資料。
     toolFetchStockNews() 會自動調用此函數。
     """
-    data = []
-    col = ["Date","Title","Content"]
-    url = f"https://ess.api.cnyes.com/ess/api/v1/news/keyword?q={stock_name}&limit={num}&page=1"
-    json_news = requests.get(url).json()['data']['items']
-    for item in json_news:
-        id = item['newsId']
-        title = item['title']
-        title = re.sub(r'<.*?>', '', title)
-        if "盤中速報" in title:continue
-        t = item['publishAt']+28800
-        if time.mktime(time.gmtime())-2592000>t:continue
-        news_time = time.strftime("%Y/%m/%d", time.gmtime(t))
-        news_url = f"https://news.cnyes.com/news/id/{id}"
-        news = requests.get(news_url).text
-        news_bs = bs(news,'html.parser')
-        news_find = news_bs.find("main",class_="c1tt5pk2")
-        news_data = "\n".join(x.text.strip() for x in news_find)
-        news_data = news_data.replace("　　　","").replace("\n\n","")
-        delete_strings = ["歡迎免費訂閱", "精彩影片","粉絲團", "Line ID","Line@","來源："]
-        for delete_str in delete_strings:
-            index = news_data.find(delete_str)
-            if index != -1:
-                news_data = news_data[:index]  # 只保留不包含該字串的部分
-                break
-        data.append([news_time, title, news_data])
-    return pd.DataFrame(data, columns=col)
+    from services.news_data import get_udn_news_summary    
+    stock_id, stockName = fetchStockInfo(stock_name)
+    stock_id = stock_id.split('.')[0]
+    stockName = re.sub(r'[-*].*$', '', stockName)  # 去除股票名稱中的特殊字符
+    
+    udn_df = get_udn_news_summary(f'{stockName} {stock_id}')[:num]
+    
+    two_months_ago = time.time() - 60 * 24 * 3600
+    udn_df = udn_df[udn_df['TimeStamp'] >= two_months_ago]
+    urls = udn_df['Url'].tolist()[:num]
+
+    news_content = []
+    for i, url in enumerate(urls):
+        if os.environ.get("RELOAD")=='true': print(f"抓取新聞中 - {i+1}/{len(urls)} ", end="\r")  # debug 時 顯示進度
+        try:
+            news = requests.get(url).text
+            news_find = bs(news,'html.parser').find("section",class_="article-content__editor").find_all("p")[:-1]
+            news_data = "\n".join(x.text.strip() for x in news_find)
+            news_data = news_data.replace("\n\n","\n").strip()
+            news_content.append(news_data)
+        except Exception as e:
+            print(f"🔴 [Error] 抓取新聞錯誤：{e}")
+            news_content.append('')
+            continue
+    udn_df['Content'] = news_content
+    udn_df['Date'] = udn_df['TimeStamp'].apply(lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M"))  # 轉換 時間戳->日期
+    return udn_df[['Date', 'Title', 'Content']]
 
 def FetchTwiiNews() -> pd.DataFrame:
     """
