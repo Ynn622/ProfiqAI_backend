@@ -1,12 +1,9 @@
 import requests
 import pandas as pd
-import time
-from bs4 import BeautifulSoup as bs
 import re
 from datetime import datetime
 import jieba
 from collections import Counter
-import os
 
 from services.function_util import fetchStockInfo
 
@@ -87,7 +84,7 @@ def stock_news_split_word(stock_id: str):
     text = ' '.join(df['Content'].dropna())
     clean_text = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\s]', '', text)  # 移除非中文字、英文字母和數字
     cut_text = ' '.join(jieba.cut(clean_text))  # 斷詞
-    filtered_words = [word for word in cut_text.split() if ((word not in stopwords_set) and (len(word) > 1))]
+    filtered_words = [word for word in cut_text.split() if ((word not in stopwords_set) and (len(word) > 1) and (not word.isdigit()))]
     word_counts = Counter(filtered_words)  # 計算詞頻
     threshold = max(4, len(filtered_words) // 700)
     filtered_counts = {word: count for word, count in word_counts.items() if count >= threshold}
