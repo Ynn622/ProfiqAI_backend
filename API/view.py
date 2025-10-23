@@ -10,6 +10,7 @@ from util.nowtime import getTaiwanTime
 from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info, get_margin_data, get_chip_data
 from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
 from services.news_data import stock_news_split_word, news_summary
+from services.main_force_data import main_force_all_days
 
 router = APIRouter(prefix="/View", tags=["View"])
 
@@ -96,14 +97,15 @@ def basic_info(stockID: str):
 @log_print
 def chip_info(stockID: str):
     """
-    取得指定股票「籌碼面」資料。 （三大法人、融資、融券）
+    取得指定股票60天內「籌碼面」資料。 （三大法人、融資、融券）
     """
     today = date.today().strftime("%Y-%m-%d")
     sixty_days_ago = (date.today() - timedelta(days=60)).strftime("%Y-%m-%d")
     
     margin_data = get_margin_data(stockID, start=sixty_days_ago, end=today)
     chip_data = get_chip_data(stockID, start=sixty_days_ago, end=today)
-    all_data = pd.concat([margin_data, chip_data], axis=1)
+    main_force_data = main_force_all_days(stockID, margin_data.index.tolist())
+    all_data = pd.concat([margin_data, chip_data, main_force_data], axis=1)
     all_data.sort_index(ascending=True, inplace=True)
     result = {
             "Date": all_data.index.tolist(),
@@ -113,6 +115,7 @@ def chip_info(stockID: str):
             "Foreign": all_data["外資"].tolist(),
             "Dealer": all_data["投信"].tolist(),
             "Investor": all_data["自營商"].tolist(),
+            "MainForce": all_data["主力買賣超"].tolist(),
         }
     result = nan_to_none(result)
     return result
