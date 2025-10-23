@@ -8,7 +8,7 @@ def get_PE_Ratio(stockID):
     獲取 PE Ratio / PE Ratio產業平均。
     '''
     try:
-        quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}')
+        quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}',timeout=3)
         quoteSoup = bs(quoteWeb.text, 'html.parser')
         PE_ratio_table = quoteSoup.find_all('span',class_='Fz(16px) C($c-link-text) Mb(4px)')[1].text
         PE_ratio_table = PE_ratio_table.strip(")").split(" (")
@@ -30,7 +30,7 @@ def get_revenue(stockID):
     獲取 MoM / YoY。   
     '''
     try:
-        revenueWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/revenue')
+        revenueWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/revenue',timeout=3)
         revenueSoup = bs(revenueWeb.text, 'html.parser')
         table = revenueSoup.find('div', class_='table-body-wrapper').find_all('li', class_="List(n)")
 
@@ -63,7 +63,7 @@ def get_EPS(stockID):
     獲取 EPS。
     '''
     try:
-        epsWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/eps')
+        epsWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/eps',timeout=3)
         epsSoup = bs(epsWeb.text, 'html.parser')
         table = epsSoup.find('div', class_='table-body-wrapper').find_all('li', class_="List(n)")
 
@@ -91,7 +91,7 @@ def get_profile(stockID):
     獲取 營業毛利率、資產報酬率、營業利益率、股東權益報酬率、稅前淨利率。
     '''
     try:
-        profileWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/profile')
+        profileWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/profile',timeout=3)
         profileSoup = bs(profileWeb.text, 'html.parser')
 
         financeInfo = profileSoup.find_all('section', class_='Mb($m-module)')[2].find_all('div', recursive=False)
@@ -132,7 +132,7 @@ def get_dividend(stockID):
     獲取 股票股利、現金股利。
     '''
     try:
-        dividendWeb = requests.get(f'https://histock.tw/stock/{stockID}/%E9%99%A4%E6%AC%8A%E9%99%A4%E6%81%AF')
+        dividendWeb = requests.get(f'https://histock.tw/stock/{stockID}/%E9%99%A4%E6%AC%8A%E9%99%A4%E6%81%AF',timeout=3)
         dividendSoup = bs(dividendWeb.text, 'html.parser')
         divTable = dividendSoup.find('table')
         trs = divTable.find_all('tr')
