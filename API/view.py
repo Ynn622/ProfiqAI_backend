@@ -9,7 +9,7 @@ from util.nowtime import getTaiwanTime
 
 from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info, get_margin_data, get_chip_data
 from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
-from services.news_data import stock_news_split_word
+from services.news_data import stock_news_split_word, news_summary
 
 router = APIRouter(prefix="/View", tags=["View"])
 
@@ -125,3 +125,13 @@ def news_word_cloud(stockID: str):
     """
     all_data, filtered_counts = stock_news_split_word(stockID)
     return JSONResponse(content={'wordCounts': filtered_counts, 'updateTime': getTaiwanTime()})
+
+@router.get("/news/summary")
+@log_print
+def get_all_news_summary(stockID: str, page: int = 1):
+    """
+    取得指定股票「新聞」資料的摘要。
+    """
+    news_summary_df = news_summary(stockID, page=page)
+    result = news_summary_df.to_dict(orient='records')
+    return JSONResponse(content={'news': result, 'updateTime': getTaiwanTime()})

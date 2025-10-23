@@ -25,7 +25,7 @@ def news_summary(stock_id: str, page: int=1) -> pd.DataFrame:
     _, stockName = fetchStockInfo(stock_id)
 
     udn_df = get_udn_news_summary(f'{stockName} {stock_id}', page=page)
-    cnyes_df = get_cnyes_news_summary(stock_id, page=page)
+    cnyes_df = get_cnyes_news_summary(stockName, page=page)
 
     df = pd.concat([udn_df, cnyes_df], ignore_index=True)
     df.sort_values(by='TimeStamp', ascending=False, inplace=True)
