@@ -33,12 +33,12 @@ def main_force_all_days(stock_id, date_list):
     sql_preupload = []
 
     if len(sql_response.data):
-        print(f" Find: {stock_id} supabase 已存在！")
+        if Env.RELOAD: print(f" Find: {stock_id} supabase 已存在！")
         sql_df = pd.DataFrame(sql_response.data).set_index("date")
         sql_df.index = pd.to_datetime(sql_df.index)
 
     for date in date_list:
-        print(f"\r主力資料截取中：{date}", end="")
+        if Env.RELOAD: print(f"\r主力資料截取中：{date}", end="")
         # 檢查 Supabase 是否已有資料
         if (sql_df is not None) and (date in sql_df.index):
             main_force_list.append(sql_df.loc[date, "mainForce"])
@@ -68,7 +68,7 @@ def main_force_all_days(stock_id, date_list):
 
     main_force_df = pd.DataFrame(main_force_list, columns=["主力買賣超"], index=date_list)
     
-    print(f"\r Done: 主力資料-載入完畢！")
+    if Env.RELOAD: print(f"\r Done: 主力資料-載入完畢！")
     return main_force_df
 
 def main_force_one_day(stock_id, date):
