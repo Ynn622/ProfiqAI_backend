@@ -1,6 +1,5 @@
 openai
 openai-agents
-line-bot-sdk
 yfinance
 beautifulsoup4
 lxml
