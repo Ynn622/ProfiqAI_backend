@@ -302,7 +302,7 @@ def get_live_stock_info(stockID: str) -> dict:
     nowtime = soup.find("time").find_all("span")[2].text
     nowtime = pd.to_datetime(nowtime).strftime("%Y-%m-%d")
     info['Date'] = nowtime
-    info['StockName'] = soup.find('h1', class_='C($c-link-text) Fw(b) Fz(24px) Mend(8px)').text
+    info['StockName'] = soup.find('h1', class_='C($c-link-text) Fw(b) Fz(24px) Mend(8px) Whs(nw)').text
 
     priceTable = soup.find("ul",class_="D(f) Fld(c) Flw(w) H(192px) Mx(-16px)").find_all("li")
     dic = {'Close': 0,
