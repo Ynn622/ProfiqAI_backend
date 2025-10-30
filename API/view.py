@@ -11,6 +11,7 @@ from services.function_util import fetchStockInfo, getStockPrice, get_live_stock
 from services.basic_data import get_PE_Ratio, get_revenue, get_EPS, get_profile, get_dividend
 from services.news_data import stock_news_split_word, news_summary
 from services.main_force_data import main_force_all_days
+from services.predict import predict_future
 
 router = APIRouter(prefix="/View", tags=["View"])
 
@@ -138,3 +139,12 @@ def get_all_news_summary(stockID: str, page: int = 1):
     news_summary_df = news_summary(stockID, page=page)
     result = news_summary_df.to_dict(orient='records')
     return JSONResponse(content={'news': result, 'updateTime': getTaiwanTime()})
+
+@router.get("/Predict/futureUpProb")
+@log_print
+def predict_future_up_prob(stockID: str):
+    """
+    預測指定股票未來1天上漲機率。
+    """
+    prob_up = predict_future(stockID)
+    return JSONResponse(content={'stockID': stockID, 'futureUpProb': prob_up})

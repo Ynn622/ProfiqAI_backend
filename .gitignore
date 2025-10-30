@@ -3,3 +3,4 @@ __pycache__/
 test*.py
 .env
 NotoSansCJKtc-Regular.otf
+lstm_stock_model.pth
