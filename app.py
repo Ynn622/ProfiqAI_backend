@@ -7,10 +7,18 @@ from fastapi.openapi.utils import get_openapi
 from util.config import Env  # 確保環境變數被載入
 import secrets
 
-from API import chat, view
+from API import basic_router, chip_router, chat_router, news_router, predict_router, stock_router
 
 # 初始化 HTTPBasic 認證
 security = HTTPBasic()
+
+app = FastAPI(
+    title="ProfiqAI API",
+    description="[投資智聊 AI] - API docs",
+    docs_url=None,  # 停用預設的 docs
+    redoc_url=None,  # 停用預設的 redoc
+    openapi_url=None  # 停用預設的 openapi.json
+)
 
 # 從環境變數讀取 /docs 帳密
 DOCS_USERNAME = Env.DOCS_USERNAME
@@ -28,13 +36,20 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
         )
     return credentials
 
-app = FastAPI(
-    title="ProfiqAI API",
-    description="[投資智聊 AI] - API docs",
-    docs_url=None,  # 停用預設的 docs
-    redoc_url=None,  # 停用預設的 redoc
-    openapi_url=None  # 停用預設的 openapi.json
-)
+# 受保護的 OpenAPI schema
+@app.get("/openapi.json", include_in_schema=False)
+async def get_open_api_endpoint(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
+    return get_openapi(title="ProfiqAI API", version="1.0.0", routes=app.routes)
+
+# 受保護的 Swagger UI
+@app.get("/docs", include_in_schema=False)
+async def get_swagger_documentation(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="ProfiqAI API")
+
+# 受保護的 ReDoc
+@app.get("/redoc", include_in_schema=False)
+async def get_redoc_documentation(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
+    return get_redoc_html(openapi_url="/openapi.json", title="ProfiqAI API")
 
 # 針對 Hugging Face Spaces 的 CORS 設定
 origins = [
@@ -53,31 +68,21 @@ app.add_middleware(
 )
 
 # 引入路由
-app.include_router(chat.router)
-app.include_router(view.router)
+app.include_router(stock_router.router)
+app.include_router(predict_router.router)
+app.include_router(basic_router.router)
+app.include_router(chip_router.router)
+app.include_router(news_router.router)
+app.include_router(chat_router.router)
 
-# 受保護的 OpenAPI schema
-@app.get("/openapi.json", include_in_schema=False)
-async def get_open_api_endpoint(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
-    return get_openapi(title="ProfiqAI API", version="1.0.0", routes=app.routes)
-
-# 受保護的 Swagger UI
-@app.get("/docs", include_in_schema=False)
-async def get_swagger_documentation(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="ProfiqAI API")
-
-# 受保護的 ReDoc
-@app.get("/redoc", include_in_schema=False)
-async def get_redoc_documentation(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
-    return get_redoc_html(openapi_url="/openapi.json", title="ProfiqAI API")
-
-# 根路由
 @app.get("/")
 def root():
+    """根路由"""
     return {"message": "Welcome to ProfiqAI API!"}
 
 @app.get("/health")
 def health_check():
+    """健康檢查，喚醒 API 用"""
     return {"status": "ok"}
 
 # FastAPI 初始化

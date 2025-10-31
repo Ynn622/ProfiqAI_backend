@@ -6,7 +6,7 @@ import asyncio
 from services.function_tools import askAI
 from util.logger import log_print
 
-router = APIRouter(prefix="/chat", tags=["Chat"])
+router = APIRouter(prefix="/chat", tags=["AI 聊天 (Chat)"])
 class ChatRequest(BaseModel):
     model: str = "gpt-4.1-mini"
     question: str
