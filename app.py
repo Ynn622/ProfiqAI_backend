@@ -7,7 +7,7 @@ from fastapi.openapi.utils import get_openapi
 from util.config import Env  # 確保環境變數被載入
 import secrets
 
-from API import basic_router, chip_router, chat_router, news_router, predict_router, stock_router
+from API import basic_router, chip_router, chat_router, news_router, predict_router, stock_router, tech_router
 
 # 初始化 HTTPBasic 認證
 security = HTTPBasic()
@@ -74,6 +74,7 @@ app.include_router(basic_router.router)
 app.include_router(chip_router.router)
 app.include_router(news_router.router)
 app.include_router(chat_router.router)
+app.include_router(tech_router.router)
 
 @app.get("/")
 def root():

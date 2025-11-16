@@ -27,7 +27,7 @@ def fetchStockInfo(stockName: str) -> str:
     return stockID, stockName
 
 
-def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) -> pd.DataFrame:
+def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[], chip_enable: bool = True) -> pd.DataFrame:
     """
     取得指定股票的歷史股價資料。
     toolGetStockPrice() 會自動調用此函數。
@@ -58,7 +58,7 @@ def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) ->
     data = data.dropna().round(2)  # 移除包含NaN的行 
     
     # 籌碼面資料
-    if symbol not in ("^TWII", "^TWOII"):
+    if chip_enable and symbol not in ("^TWII", "^TWOII"):
         try:
             chip_data = get_chip_data(symbol, data.index[0], data.index[-1]).reindex(data.index)
             data = pd.concat([data, chip_data], axis=1)
@@ -179,8 +179,16 @@ def get_technical_indicators(data, sdf_indicator_list):
     # 計算技術指標
     stock_df = Sdf.retype(data)
     
-    # 過濾掉 stockstats 不支援的指標，避免 KeyError
-    valid_indicators = [col for col in sdf_indicator_list if col in stock_df.columns]
+    # 嘗試計算指標,忽略不支援的指標
+    valid_indicators = []
+    for indicator in sdf_indicator_list:
+        try:
+            # 訪問指標欄位會觸發 stockstats 自動計算
+            _ = stock_df[indicator]
+            valid_indicators.append(indicator)
+        except (KeyError, Exception) as e:
+            Log(f"⚠️  [Warning] 無法計算指標 '{indicator}': {str(e)}", color=Color.YELLOW)
+            continue
 
     # 取出需要的指標資料
     indicator_data = stock_df[valid_indicators].copy()
