@@ -1,14 +1,9 @@
 from bs4 import BeautifulSoup as bs
 import pandas as pd
 import cloudscraper
-from supabase import create_client
 import numpy as np
 from util.config import Env  # 確保環境變數被載入
-
-# Supabase 設定
-SUPABASE_URL = Env.SUPABASE_URL
-SUPABASE_KEY = Env.SUPABASE_KEY
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+from util.supabase_client import supabase
 
 scraper = cloudscraper.create_scraper()   # 防檔爬蟲用
 
