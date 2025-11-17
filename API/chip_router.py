@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 import pandas as pd
 from datetime import date, timedelta
 
@@ -36,3 +37,16 @@ def chip_info(stock_id: str):
         }
     result = nan_to_none(result)
     return result
+
+@router.get("/score")
+@log_print
+def chip_score(stock_id: str):
+    """
+    取得股票「籌碼面」指標資訊
+    """
+    from services.chip_data import calculate_chip_indicators
+    data = calculate_chip_indicators(stock_id)
+    if data:
+        return JSONResponse(content={"chip_data": data})
+    else:
+        return JSONResponse(content={"message": "無法取得籌碼面資訊"}, status_code=404)

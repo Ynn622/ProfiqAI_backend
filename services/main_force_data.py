@@ -14,6 +14,7 @@ def main_force_all_days(stock_id, date_list):
         stock_id(str): 股票代號
         date_list(list): 日期列表 ex. ['2024-05-10', '2024-05-11']
     """
+    stock_id = stock_id.split('.')[0]  # 去除可能的後綴
     main_force_list = []
     # 從 Supabase 獲取已存在的主力資料
     sql_response = (

@@ -225,7 +225,7 @@ def get_live_price(symbol: str) -> pd.DataFrame:
     return pd.DataFrame(dic, index=[nowtime])
 
  
-def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
+def get_chip_data(symbol: str, start: str, end: str=datetime.now().strftime('%Y-%m-%d')) -> pd.DataFrame:
     """
     用於取得最新籌碼面資料。
     get_stock_price() 會自動調用此函數。
@@ -259,7 +259,7 @@ def get_chip_data(symbol: str, start: str, end: str) -> pd.DataFrame:
     return df
 
 
-def get_margin_data(symbol: str, start: str, end: str) -> pd.DataFrame:
+def get_margin_data(symbol: str, start: str, end: str=datetime.now().strftime('%Y-%m-%d'), select_columns=None) -> pd.DataFrame:
     """
     用於取得最新融資融券資料。
     """
@@ -294,7 +294,8 @@ def get_margin_data(symbol: str, start: str, end: str) -> pd.DataFrame:
         # 處理日期
         date_str = f"{int(date[0])+1911}-{date[1]}-{date[2]}"
         date_index.append(date_str)
-    df = pd.DataFrame(data, columns=col, index=date_index)[['融資增減', '融券增減', '融券券資比%']]
+    select_columns = select_columns if select_columns else ['融資增減', '融券增減', '融券券資比%']
+    df = pd.DataFrame(data, columns=col, index=date_index)[select_columns]
     return df
 
 
