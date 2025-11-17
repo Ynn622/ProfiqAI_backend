@@ -55,6 +55,7 @@ async def get_redoc_documentation(credentials: HTTPBasicCredentials = Depends(ve
 origins = [
     "http://localhost:5173",
     "https://ynn622.github.io/ProfiqAI",
+    "https://investchat.net/",
     "https://huggingface.co",
     "https://*.hf.space",
 ]
