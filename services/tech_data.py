@@ -96,4 +96,5 @@ def calculate_technical_indicators(stock_id: str):
 
     latestdata = df.iloc[0]
     latestdata_dict = latestdata.to_dict()
+    latestdata_dict['date'] = str(df.index[0])  # 加入日期
     return latestdata_dict
