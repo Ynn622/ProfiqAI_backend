@@ -5,9 +5,7 @@ from datetime import date, timedelta
 
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
-
-from services.function_util import get_margin_data, get_chip_data
-from services.main_force_data import main_force_all_days
+from services.chip_data import get_margin_data, get_chip_data, main_force_all_days
 
 router = APIRouter(prefix="/chip", tags=["籌碼面 Chip"])
 

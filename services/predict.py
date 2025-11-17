@@ -85,7 +85,7 @@ def get_predict_stock_data(symbol: str) -> pd.DataFrame:
         symbol (str): 股票代號
     """
     from stockstats import StockDataFrame as Sdf
-    from services.function_util import fetchStockInfo
+    from services.stock_data import fetchStockInfo
     
     stockID, _ = fetchStockInfo(symbol)
     data = yf.Ticker(stockID).history(period="100d", interval="60m")
@@ -114,7 +114,7 @@ def get_predict_stock_data_talib(symbol: str) -> pd.DataFrame:
         symbol (str): 股票代號
     """
     import talib
-    from services.function_util import fetchStockInfo
+    from services.stock_data import fetchStockInfo
     
     stockID, _ = fetchStockInfo(symbol)
     data = yf.Ticker(stockID).history(period="100d", interval="60m")

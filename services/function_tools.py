@@ -1,15 +1,14 @@
 from agents import function_tool
 from agents import Agent, Runner, function_tool
 
-from services.function_util import *  # 引入 util.py 中的所有輔助函數
 from util.logger import log_print
-from util.nowtime import getTaiwanTime
+from util.nowtime import TaiwanTime
 
 async def askAI(question, model):
     agent = Agent(
         name="Finance Agent",
         model=model,
-        instructions=f"你是一名台灣股票分析師，請使用提供的工具，分析股票各面向並給予操作方向＆價位建議。（1.如果查無資料，可嘗試使用工具查詢代碼\n 2.若未提及需要分析的時間&技術指標時，預設為一個月且使用5&10MA，今天是{getTaiwanTime()}\n 3.若無特別提及分析面向，請查詢股價&新聞）\n4.用簡單、完整又有禮貌的方式回答問題，若資訊較多請使用md格式",
+        instructions=f"你是一名台灣股票分析師，請使用提供的工具，分析股票各面向並給予操作方向＆價位建議。（1.如果查無資料，可嘗試使用工具查詢代碼\n 2.若未提及需要分析的時間&技術指標時，預設為一個月且使用5&10MA，今天是{TaiwanTime.string()}\n 3.若無特別提及分析面向，請查詢股價&新聞）\n4.用簡單、完整又有禮貌的方式回答問題，若資訊較多請使用md格式",
         tools=[toolFetchStockInfo, toolGetStockPrice, toolFetchStockNews, toolFetchTwiiNews, toolFetchETFIngredients],
     )
     result = await Runner.run(agent, question)
@@ -29,6 +28,7 @@ async def toolFetchStockInfo(stockName: str) -> str:
     Example:
         toolFetchStockInfo("鴻海") -> ('2317.TW','鴻海')
     """
+    from services.stock_data import fetchStockInfo
     try:
         stockID, stockName = fetchStockInfo(stockName)
         return stockID, stockName
@@ -54,6 +54,7 @@ async def toolGetStockPrice(symbol: str, start: str, sdf_indicator_list: list[st
         toolGetStockPrice("2330.TW", "1mo")
         toolGetStockPrice("2330.TW", "2024-01-01", sdf_indicator_list=["close_5_sma", "close_10_ema", "macd", "kdjk", "kdjd", "rsi_5", "rsi_10"])
     """
+    from services.stock_data import getStockPrice
     try:
         data = getStockPrice(symbol, start, sdf_indicator_list)
         return data.to_string()
@@ -72,6 +73,7 @@ async def toolFetchStockNews(stock_name: str) -> str:
     Example:
         toolFetchStockNews("台積電")
     """
+    from services.news_data import FetchStockNews
     try:
         data = FetchStockNews(stock_name)
         return data.to_string()
@@ -88,6 +90,7 @@ async def toolFetchTwiiNews() -> str:
     Example:
         toolFetchTwiiNews()
     """
+    from services.news_data import FetchTwiiNews
     try:
         data = FetchTwiiNews()
         return data.to_string()
@@ -106,6 +109,7 @@ async def toolFetchETFIngredients(ETF_name: str) -> str:
     Example:
         toolFetchETFIngredients("0050")
     """
+    from services.stock_data import fetchETFIngredients
     try:
         data = fetchETFIngredients(ETF_name)
         return data

@@ -1,9 +1,73 @@
 import numpy as np
 import pandas as pd
+from stockstats import StockDataFrame as Sdf
 
-from services.function_util import getStockPrice, fetchStockInfo
+from util.logger import Log, Color
+
+def get_technical_indicators(data, sdf_indicator_list):
+    """
+    計算技術指標
+    Args:
+        data(DataFrame): 股價歷史資料
+        sdf_indicator_list (list): 欲計算的技術指標清單
+    """
+    indicator_dict = {
+        'close':'Close',
+        'open':'Open',
+        'high':'High',
+        'low':'Low',
+        'volume':'Volume',
+        'close_5_sma':'SMA_5',
+        'close_10_sma':'SMA_10',
+        'close_20_sma':'SMA_20',
+        'close_60_sma':'SMA_60',
+        'close_5_ema':'EMA_5',
+        'close_10_ema':'EMA_10',
+        'close_20_ema':'EMA_20',
+        'macd': 'MACD',
+        'macds': 'Signal Line',
+        'macdh': 'Histogram',
+        'kdjk': '%K',
+        'kdjd': '%D',
+        'rsi_5': 'RSI_5',
+        'rsi_10': 'RSI_10',
+        'close_5_roc': 'ROC',
+        'boll_ub': 'BOLL_UPPER',
+        'boll': 'BOLL_MIDDLE',
+        'boll_lb': 'BOLL_LOWER',
+        'change': 'PCT'
+    }
+
+    # 計算技術指標
+    stock_df = Sdf.retype(data)
+    
+    # 嘗試計算指標,忽略不支援的指標
+    valid_indicators = []
+    for indicator in sdf_indicator_list:
+        try:
+            # 訪問指標欄位會觸發 stockstats 自動計算
+            _ = stock_df[indicator]
+            valid_indicators.append(indicator)
+        except (KeyError, Exception) as e:
+            Log(f"⚠️  [Warning] 無法計算指標 '{indicator}': {str(e)}", color=Color.YELLOW)
+            continue
+
+    # 取出需要的指標資料
+    indicator_data = stock_df[valid_indicators].copy()
+    
+    indicator_data.rename(columns=indicator_dict, inplace=True)  # 將指標名稱轉換
+    indicator_data = indicator_data.round(2)
+    
+    # 避免重複：只保留 data 裡沒有的欄位
+    new_cols = [col for col in indicator_data.columns if col not in data.columns]
+    indicator_data = indicator_data[new_cols]
+    
+    return indicator_data
+
 
 def calculate_technical_indicators(stock_id: str):
+    from services.stock_data import getStockPrice, fetchStockInfo
+
     stock_id = fetchStockInfo(stock_id)[0]
     df = getStockPrice(symbol=stock_id, 
                         start='2024-06-10', 

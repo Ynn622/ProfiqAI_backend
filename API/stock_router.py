@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
 
-from services.function_util import fetchStockInfo, getStockPrice, get_live_stock_info
+from services.stock_data import fetchStockInfo, getStockPrice, get_live_stock_info
 
 router = APIRouter(prefix="/stock", tags=["股價資料 Stock"])
 
