@@ -158,3 +158,76 @@ def get_dividend(stockID):
         }
     
     return json_dividend
+
+def basic_info(stock_id: str):
+    """
+    取得指定股票「基本面」資訊。
+    """
+    pe = get_PE_Ratio(stock_id)
+    r = get_revenue(stock_id)
+    eps = get_EPS(stock_id)
+    pro = get_profile(stock_id)
+    dividend = get_dividend(stock_id)
+
+    basic_data = {**pe, **pro}
+
+    basic_data["eps"] = eps["eps"][0]
+    basic_data["epsGap"] = round(eps["eps"][0]-eps["eps"][1],2)
+    basic_data["MoM"] = r["mom"][0]
+    basic_data["YoY"] = r["yoy"][0]
+    basic_data["stockSplits"] = dividend["capitalGains"][0]
+    basic_data["dateDividend"] = dividend["date"][0]
+
+    json_data = {
+        "basicData": basic_data,
+        "revenue": r,
+        "eps": eps,
+        "dividend": dividend,
+    }
+    basic_score(json_data["basicData"])
+    return json_data
+
+def basic_score(data: dict):
+    """
+    計算基本面分數。
+    """
+    def score_by_thresholds(x, thresholds):
+        if x is None: return -2
+        for value, score in thresholds:
+            if x > value:
+                return score
+        return thresholds[-1][1]
+
+    PE_THRESHOLDS   = [(30, -1), (20, 2), (10, 1), (-999, -1)]
+    MOM_THRESHOLDS  = [(0.15, 2), (0.03, 1), (-0.15, -1), (-999, -2)]
+    YOY_THRESHOLDS  = [(0.25, 2), (0.1, 1), (-0.05, -1), (-999, -2)]
+    EPS_THRESHOLDS  = [(5, 2), (2, 1), (-1, -1), (-999, -2)]
+    ROE_THRESHOLDS  = [(0.13, 2), (0.08, 1), (0, -1), (-999, -2)]
+    ROA_THRESHOLDS  = [(0.06, 2), (0.02, 1), (0, -1), (-999, -2)]
+    GPM_THRESHOLDS  = [(0.4, 2), (0.2, 1), (0, -1), (-999, -2)]
+    OPM_THRESHOLDS  = [(0.2, 2), (0.1, 1), (0, -1), (-999, -2)]
+    PTPM_THRESHOLDS = [(0.2, 2), (0.1, 1), (0, -1), (-999, -2)]
+    
+    scores = {
+        "PE_ratio": score_by_thresholds(data["PE_ratio"], PE_THRESHOLDS),
+        "MoM": score_by_thresholds(data["MoM"] / 100, MOM_THRESHOLDS),
+        "YoY": score_by_thresholds(data["YoY"] / 100, YOY_THRESHOLDS),
+        "eps": score_by_thresholds(data["eps"], EPS_THRESHOLDS),
+        "ROE": score_by_thresholds(data["ROE"] / 100, ROE_THRESHOLDS),
+        "ROA": score_by_thresholds(data["ROA"] / 100, ROA_THRESHOLDS),
+        "GPM": score_by_thresholds(data["GPM"] / 100, GPM_THRESHOLDS),
+        "OPM": score_by_thresholds(data["OPM"] / 100, OPM_THRESHOLDS),
+        "PTPM": score_by_thresholds(data["PTPM"] / 100, PTPM_THRESHOLDS)
+    }
+
+    for key, value in scores.items():
+        data[f"{key}_Score"] = value
+    
+    data["總分"] = sum(scores.values())
+    data["direction"] = (
+        2 if data["總分"] >= 7 else
+        1  if data["總分"] > 2 else
+        -1 if data["總分"] > -2 else
+        -2
+    )
+    return data
