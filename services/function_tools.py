@@ -1,18 +1,28 @@
-from agents import function_tool
 from agents import Agent, Runner, function_tool
+import uuid
 
 from util.logger import log_print
 from util.nowtime import TaiwanTime
+from util.ai_session import trim_session
 
-async def askAI(question, model):
+async def askAI(question: str, model: str, session_id: str = str(uuid.uuid4()) ) -> str:
+    """
+    詢問 AI 並獲得回應。
+    Args:
+        question (str): 使用者的問題。
+        model (str): 使用的 AI 模型名稱。
+        session_id (str): 對話會話的唯一識別碼。
+    Returns:
+        str: AI 的回應內容。
+    """
+    session = await trim_session(session_id)
     agent = Agent(
         name="Finance Agent",
         model=model,
         instructions=f"你是一名台灣股票分析師，請使用提供的工具，分析股票各面向並給予操作方向＆價位建議。（1.如果查無資料，可嘗試使用工具查詢代碼\n 2.若未提及需要分析的時間&技術指標時，預設為一個月且使用5&10MA，今天是{TaiwanTime.string()}\n 3.若無特別提及分析面向，請查詢股價&新聞）\n4.用簡單、完整又有禮貌的方式回答問題，若資訊較多請使用md格式",
         tools=[toolFetchStockInfo, toolGetStockPrice, toolFetchStockNews, toolFetchTwiiNews, toolFetchETFIngredients],
     )
-    result = await Runner.run(agent, question)
-    #print("Agent:",result.final_output)
+    result = await Runner.run(agent, question, session=session)
     return result.final_output
 
 

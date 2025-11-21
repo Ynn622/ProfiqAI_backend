@@ -7,12 +7,14 @@ from services.function_tools import askAI
 from util.logger import log_print
 
 router = APIRouter(prefix="/chat", tags=["AI 聊天 (Chat)"])
+
 class ChatRequest(BaseModel):
     model: str = "gpt-4.1-mini"
     question: str
+    uuid: str
 
 @router.post("/chatBot")
 @log_print
 def ask(req: ChatRequest):
-    chat_response = asyncio.run(askAI(req.question, model=req.model.lower()))
+    chat_response = asyncio.run(askAI(req.question, model=req.model.lower(), session_id=req.uuid))
     return JSONResponse(content={'response': chat_response})
