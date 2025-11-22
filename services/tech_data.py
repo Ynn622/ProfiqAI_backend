@@ -74,87 +74,148 @@ def calculate_technical_indicators(stock_id: str):
                         chip_enable=False,
                         sdf_indicator_list=['close_5_ema', 'close_10_ema','macd', 'macds', 'macdh','kdjk', 'kdjd', 'rsi_5','close_5_roc','close_6_sma'])
     
-    # 確保有 close_6_sma 欄位
-    if 'SMA_6' not in df.columns and 'close_6_sma' in df.columns:
-        df.rename(columns={'close_6_sma': 'SMA_6'}, inplace=True)
+    df.rename(columns={'close_6_sma': 'SMA_6', 'RSI_5': 'RSI'}, inplace=True, errors='ignore')
     
     ma6 = df['SMA_6'] if 'SMA_6' in df.columns else df['Close'].rolling(6).mean()
-    ma6 = df['SMA_6'] if 'SMA_6' in df.columns else df['Close'].rolling(6).mean()
-    df['BIAS'] = ((df['Close'] - ma6) / ma6 * 100).round(2)
-    df['Score'] = 0.0
-
-    # 取得指標欄位(如果存在)
-    ema_5 = df.get('EMA_5', df['Close'])
-    ema_10 = df.get('EMA_10', df['Close'])
-    macd = df.get('MACD', 0)
-    signal_line = df.get('Signal Line', 0)
-    histogram = df.get('Histogram', 0)
-    k = df.get('%K', 50)
-    d = df.get('%D', 50)
-    rsi = df.get('RSI_5', 50)
-    roc = df.get('ROC', 0)
-    
+    df['BIAS'] = ((df['Close'] - ma6) / ma6 * 100).round(2)    
     df = df.round(2)
 
-    df['EMA_Score'] = 0.0
-    df['MACD_Score'] = 0.0
-    df['KD_Score'] = 0.0
-    df['RSI_Score'] = 0.0
-    df['ROC_Score'] = 0.0
-    df['BIAS_Score'] = 0.0
+    # 初始化各指標評分欄位
+    df[['EMA_Score', 'MACD_Score', 'KD_Score', 'RSI_Score', 'ROC_Score', 'BIAS_Score']] = 0.0
 
     #EMA條件
-    df['EMA_Score'] += np.where(ema_5 >= ema_10, 0.7, -0.7)
-    df['EMA_Score'] += np.where(ema_5 >= ema_5.shift(1), 0.7, -0.7)
-    df['EMA_Score'] += np.where((ema_5.shift(1) < ema_10.shift(1))&(ema_5 >= ema_10), 1, 0)
-    df['EMA_Score'] += np.where((ema_5.shift(1) > ema_10.shift(1))&(ema_5 <= ema_10), -1, 0)
+    df['EMA_Score'] += np.where(df['EMA_5'] >= df['EMA_10'], 0.7, -0.7)
+    df['EMA_Score'] += np.where(df['EMA_5'] >= df['EMA_5'].shift(1), 0.7, -0.7)
+    df['EMA_Score'] += np.where((df['EMA_5'].shift(1) < df['EMA_10'].shift(1))&(df['EMA_5'] >= df['EMA_10']), 1, 0)
+    df['EMA_Score'] += np.where((df['EMA_5'].shift(1) > df['EMA_10'].shift(1))&(df['EMA_5'] <= df['EMA_10']), -1, 0)
 
     #MACD條件
-    df['MACD_Score'] += np.where(macd >= signal_line, 0.7, -0.7)
-    df['MACD_Score'] += np.where(macd >= macd.shift(1), 0.5, -0.5)
-    df['MACD_Score'] += np.where(signal_line >= signal_line.shift(1), 0.5, -0.5)
-    df['MACD_Score'] += np.where((macd.shift(1) < signal_line.shift(1))&(macd >= signal_line), 1, 0)
-    df['MACD_Score'] += np.where((macd.shift(1) > signal_line.shift(1))&(macd <= signal_line), -1, 0)
-    df['MACD_Score'] += np.where(histogram >= histogram.shift(1), 0.3, -0.3)
+    df['MACD_Score'] += np.where(df['MACD'] >= df['Signal Line'], 0.7, -0.7)
+    df['MACD_Score'] += np.where(df['MACD'] >= df['MACD'].shift(1), 0.5, -0.5)
+    df['MACD_Score'] += np.where(df['Signal Line'] >= df['Signal Line'].shift(1), 0.5, -0.5)
+    df['MACD_Score'] += np.where((df['MACD'].shift(1) < df['Signal Line'].shift(1))&(df['MACD'] >= df['Signal Line']), 1, 0)
+    df['MACD_Score'] += np.where((df['MACD'].shift(1) > df['Signal Line'].shift(1))&(df['MACD'] <= df['Signal Line']), -1, 0)
+    df['MACD_Score'] += np.where(df['Histogram'] >= df['Histogram'].shift(1), 0.3, -0.3)
 
     #KD條件
-    df['KD_Score'] += np.where(k >= d, 0.7, -0.7)
-    df['KD_Score'] += np.where(k >= k.shift(1), 0.5, -0.5)
-    df['KD_Score'] += np.where(d >= d.shift(1), 0.5, -0.5)
-    df['KD_Score'] += np.where((k > 80) & (d > 80), -0.5, 0)
-    df['KD_Score'] += np.where((k < 20) & (d < 20), 0.5, 0)
-    df['KD_Score'] += np.where((k.shift(1) < d.shift(1)) & (k >= d), 1, 0)
-    df['KD_Score'] += np.where((k.shift(1) > d.shift(1)) & (k <= d), -1, 0)
+    df['KD_Score'] += np.where(df['%K'] >= df['%D'], 0.7, -0.7)
+    df['KD_Score'] += np.where(df['%K'] >= df['%K'].shift(1), 0.5, -0.5)
+    df['KD_Score'] += np.where(df['%D'] >= df['%D'].shift(1), 0.5, -0.5)
+    df['KD_Score'] += np.where((df['%K'] > 80) & (df['%D'] > 80), -0.5, 0)
+    df['KD_Score'] += np.where((df['%K'] < 20) & (df['%D'] < 20), 0.5, 0)
+    df['KD_Score'] += np.where((df['%K'].shift(1) < df['%D'].shift(1)) & (df['%K'] >= df['%D']), 1, 0)
+    df['KD_Score'] += np.where((df['%K'].shift(1) > df['%D'].shift(1)) & (df['%K'] <= df['%D']), -1, 0)
 
     #RSI條件
-    df['RSI_Score'] += np.where(rsi > 70, -0.5, 0)
-    df['RSI_Score'] += np.where(rsi < 30, 0.5, 0)
-    df['RSI_Score'] += np.where(rsi > rsi.shift(1), 0.5, -0.5)
+    df['RSI_Score'] += np.where(df['RSI'] > 70, -0.5, 0)
+    df['RSI_Score'] += np.where(df['RSI'] < 30, 0.5, 0)
+    df['RSI_Score'] += np.where(df['RSI'] > df['RSI'].shift(1), 0.5, -0.5)
 
     #ROC條件
-    df['ROC_Score'] += np.where(roc > roc.shift(1), 0.5, -0.5)
-    df['ROC_Score'] += np.where((roc > 0) & (roc.shift(1) < 0), 0.7, 0)
-    df['ROC_Score'] += np.where((roc < 0) & (roc.shift(1) > 0), -0.7, 0)
+    df['ROC_Score'] += np.where(df['ROC'] > df['ROC'].shift(1), 0.5, -0.5)
+    df['ROC_Score'] += np.where((df['ROC'] > 0) & (df['ROC'].shift(1) < 0), 0.7, 0)
+    df['ROC_Score'] += np.where((df['ROC'] < 0) & (df['ROC'].shift(1) > 0), -0.7, 0)
 
     #BIAS條件
     df['BIAS_Score'] += np.where(df['BIAS'] > df['BIAS'].shift(1), 0.5, -0.5)
     df['BIAS_Score'] += np.where((df['BIAS'] > 0) & (df['BIAS'].shift(1) < 0), 0.7, 0)
     df['BIAS_Score'] += np.where((df['BIAS'] < 0) & (df['BIAS'].shift(1) > 0), -0.7, 0)
 
-    df['EMA_rate'] = np.select([df['EMA_Score'] > 1,df['EMA_Score'] > 0,df['EMA_Score'] >= -1],['很偏多', '偏多', '偏空'],default='很偏空')
-    df['MACD_rate'] = np.select([df['MACD_Score'] > 1.2, df['MACD_Score'] > 0, df['MACD_Score'] >= -1.2],['很偏多','偏多','偏空'], default='很偏空')
-    df['KD_rate'] = np.select([df['KD_Score'] > 1.2, df['KD_Score'] > 0, df['KD_Score'] >= -1.2],['很偏多','偏多','偏空'], default='很偏空')
-    df['RSI_rate']  = np.select([df['RSI_Score'] > 0.5, df['RSI_Score']  > 0, df['RSI_Score']  >= -0.5],['很偏多','偏多','偏空'], default='很偏空')
-    df['ROC_rate']  = np.select([df['ROC_Score'] > 0.5, df['ROC_Score']  > 0, df['ROC_Score']  >= -0.5],['很偏多','偏多','偏空'], default='很偏空')
-    df['BIAS_rate'] = np.select([df['BIAS_Score'] > 0.5, df['BIAS_Score'] > 0, df['BIAS_Score'] >= -0.5],['很偏多','偏多','偏空'], default='很偏空')
-
-    df['result'] = (df['Close']>df['Close'].shift(1)).astype(int)
+    # 總分
     df['TotalScore'] = df[['EMA_Score','MACD_Score','KD_Score','RSI_Score','ROC_Score','BIAS_Score']].sum(axis=1)
+    
+    # 各指標評級標籤
+    df['EMA_label'] = pd.cut(df['EMA_Score'],  bins=[-np.inf, -1, 0, 1, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    df['MACD_label'] = pd.cut(df['MACD_Score'], bins=[-np.inf, -1.2, 0, 1.2, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    df['KD_label'] = pd.cut(df['KD_Score'], bins=[-np.inf, -1.2, 0, 1.2, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    df['RSI_label'] = pd.cut(df['RSI_Score'], bins=[-np.inf, -0.5, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    df['ROC_label'] = pd.cut(df['ROC_Score'], bins=[-np.inf, -0.5, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    df['BIAS_label'] = pd.cut(df['BIAS_Score'], bins=[-np.inf, -0.5, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    
+    # EMA 狀態描述
+    ema_rules = {
+        "黃金交叉": ( (df["EMA_5"].shift(1) < df["EMA_10"].shift(1)) & (df["EMA_5"] >= df["EMA_10"]) ),
+        "死亡交叉": ( (df["EMA_5"].shift(1) > df["EMA_10"].shift(1)) & (df["EMA_5"] <= df["EMA_10"]) ),
+        "多頭排列 & 快線向上": ( (df["EMA_5"] >= df["EMA_10"]) & (df["EMA_5"] >= df["EMA_5"].shift(1)) ),
+        "空頭排列 & 快線向下": ( (df["EMA_5"] <= df["EMA_10"]) & (df["EMA_5"] <= df["EMA_5"].shift(1)) ),
+        "多頭排列 & 快線向下": ( (df["EMA_5"] >= df["EMA_10"]) & (df["EMA_5"] < df["EMA_5"].shift(1)) ),
+        "空頭排列 & 快線向上": ( (df["EMA_5"] <= df["EMA_10"]) & (df["EMA_5"] > df["EMA_5"].shift(1)) ),
+    }
+    # 套用 EMA 狀態欄位
+    df["EMA_Status"] = np.select( list(ema_rules.values()), list(ema_rules.keys()), default="整理中" )
 
-    #評級
-    df['accurate'] = (((df['Score'] > 0) & (df['result'].shift(-1) == 1)) |((df['Score'] <= 0) & (df['result'].shift(-1) == 0))).astype(int)
-    df['direction'] = np.select([df['TotalScore'] > 3,df['TotalScore'] > 0,df['TotalScore'] >= -3],[2, 1, -1],default=-2)
-    df['評級'] = np.select([df['TotalScore'] > 3,df['TotalScore'] > 0,df['TotalScore'] >= -3],['很偏多', '偏多', '偏空'],default='很偏空')
+
+    # MACD 狀態描述字典
+    macd_rules = {
+        "黃金交叉": ( (df["MACD"].shift(1) < df["Signal Line"].shift(1)) & (df["MACD"] >= df["Signal Line"]) ),
+        "死亡交叉": ( (df["MACD"].shift(1) > df["Signal Line"].shift(1)) & (df["MACD"] <= df["Signal Line"]) ),
+        "快線>慢線 & 柱狀圖增強": ( (df["MACD"] >= df["Signal Line"]) & (df["Histogram"] >= df["Histogram"].shift(1)) ),
+        "快線<慢線 & 柱狀圖增強": ( (df["MACD"] <= df["Signal Line"]) & (df["Histogram"] <= df["Histogram"].shift(1)) ),
+        "快線>慢線 & 柱狀圖減弱": ( (df["MACD"] >= df["Signal Line"]) & (df["Histogram"] < df["Histogram"].shift(1)) ),
+        "快線<慢線 & 柱狀圖減弱": ( (df["MACD"] <= df["Signal Line"]) & (df["Histogram"] > df["Histogram"].shift(1)) ),
+    }
+    # 套用 MACD 狀態欄位
+    df["MACD_Status"] = np.select( list(macd_rules.values()), list(macd_rules.keys()), default="整理中" )
+
+
+    # KD 狀態描述
+    kd_rules = {
+        "超買區死亡交叉": ( (df["%K"].shift(1) > df["%D"].shift(1)) & (df["%K"] <= df["%D"]) & (df["%K"] > 80) & (df["%D"] > 80) ),
+        "超賣區黃金交叉": ( (df["%K"].shift(1) < df["%D"].shift(1)) & (df["%K"] >= df["%D"]) & (df["%K"] < 20) & (df["%D"] < 20) ),
+        "黃金交叉": ( (df["%K"].shift(1) < df["%D"].shift(1)) & (df["%K"] >= df["%D"]) ),
+        "死亡交叉": ( (df["%K"].shift(1) > df["%D"].shift(1)) & (df["%K"] <= df["%D"]) ),
+        "超買區鈍化/盤整": ( (df["%K"] > 80) & (df["%D"] > 80) ),
+        "超賣區鈍化/盤整": ( (df["%K"] < 20) & (df["%D"] < 20) ),
+        "K>D & K向上": ( (df["%K"] >= df["%D"]) & (df["%K"] >= df["%K"].shift(1)) ),
+        "K<D & K向下": ( (df["%K"] <= df["%D"]) & (df["%K"] <= df["%K"].shift(1)) ),
+    }
+    # 新增 KD 狀態欄位
+    df["KD_Status"] = np.select( list(kd_rules.values()), list(kd_rules.keys()), default="整理中" )
+
+
+    # RSI 狀態描述
+    rsi_rules = {
+        "超買區高點回落": ( (df["RSI"] > 70) & (df["RSI"] <= df["RSI"].shift(1)) ),
+        "超買區持續走高": ( (df["RSI"] > 70) & (df["RSI"] > df["RSI"].shift(1)) ),
+        "超賣區低點回升": ( (df["RSI"] < 30) & (df["RSI"] >= df["RSI"].shift(1)) ),
+        "超賣區持續走低": ( (df["RSI"] < 30) & (df["RSI"] < df["RSI"].shift(1)) ),
+        "中性區間走高":  ( df["RSI"] > df["RSI"].shift(1) ),
+        "中性區間走低":  ( df["RSI"] < df["RSI"].shift(1) ),
+    }
+    # 套用 RSI 狀態欄位
+    df["RSI_Status"] = np.select( list(rsi_rules.values()), list(rsi_rules.keys()), default="整理中" )
+
+
+    # ROC 狀態描述
+    roc_rules = {
+        "由負轉正":        (df["ROC"] > 0) & (df["ROC"].shift(1) <= 0),
+        "由正轉負":        (df["ROC"] < 0) & (df["ROC"].shift(1) >= 0),
+        "正值區持續增強":   (df["ROC"] > 0) & (df["ROC"] > df["ROC"].shift(1)),
+        "負值區持續減弱":   (df["ROC"] < 0) & (df["ROC"] < df["ROC"].shift(1)),
+        "正值區減弱/修正":  (df["ROC"] > 0) & (df["ROC"] <= df["ROC"].shift(1)),
+        "負值區增強/修正":  (df["ROC"] < 0) & (df["ROC"] >= df["ROC"].shift(1)),
+    }
+    # 套用 ROC 狀態欄位
+    df["ROC_Status"] = np.select( list(roc_rules.values()), list(roc_rules.keys()), default="零軸附近整理" )
+
+
+    # BIAS 狀態描述
+    bias_rules = {
+        "由負轉正":    (df["BIAS"] > 0) & (df["BIAS"].shift(1) <= 0),
+        "由正轉負":    (df["BIAS"] < 0) & (df["BIAS"].shift(1) >= 0),
+        "正乖離擴大":  (df["BIAS"] > 0) & (df["BIAS"] > df["BIAS"].shift(1)),
+        "負乖離擴大":  (df["BIAS"] < 0) & (df["BIAS"] < df["BIAS"].shift(1)),
+        "正乖離縮小":  (df["BIAS"] > 0) & (df["BIAS"] <= df["BIAS"].shift(1)),
+        "負乖離縮小":  (df["BIAS"] < 0) & (df["BIAS"] >= df["BIAS"].shift(1)),
+    }
+    # 套用 BIAS 狀態欄位
+    df["BIAS_Status"] = np.select( list(bias_rules.values()), list(bias_rules.keys()), default="零軸附近整理" )
+
+    # 評級
+    df['result'] = (df['Close']>df['Close'].shift(1)).astype(int)
+    df['accurate'] = ( (df['TotalScore'] > 0).astype(int) == df['result'].shift(-1) ).astype(int)
+    df['direction'] = pd.cut(df['TotalScore'], bins=[-np.inf, -3, 0, 3, np.inf], labels=[-2, -1, 1, 2], right=False).astype(int)
+    df['direction_label'] = pd.cut(df['TotalScore'], bins=[-np.inf, -3, 0, 3, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
 
     df = df.iloc[::-1]
 
