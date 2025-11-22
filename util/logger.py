@@ -13,33 +13,43 @@ class Color(Enum):
     GREEN = "\033[92m"    # 綠色
     YELLOW = "\033[93m"   # 黃色
 
+# === 日誌裝飾器 ===
 def log_print(func):
-    if inspect.iscoroutinefunction(func):  # 如果是 async function
+    def build_arg_string(args, kwargs):
+        parts = []
+        if args:
+            parts.append(", ".join(map(str, args)))
+        if kwargs:
+            parts.append(", ".join(f"{k}={v}" for k, v in kwargs.items()))
+        return ", ".join(parts)
+
+    if inspect.iscoroutinefunction(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             func_name = func.__name__
+            arg_str = build_arg_string(args, kwargs)
             try:
-                arg_str = f"{', '.join(map(str, args))}" if args else ""
-                kwarg_str = f"{kwargs}" if kwargs else ""
-                print(f"{TaiwanTime.string(ms=True)} | {Color.PURPLE.value}🟣 [FunctionCall] {func_name}({arg_str}{kwarg_str}){Color.RESET.value}")
+                print(f"{TaiwanTime.string(ms=True)} | "
+                      f"{Color.PURPLE.value}🟣 [FunctionCall] {func_name}({arg_str}){Color.RESET.value}")
+
                 return await func(*args, **kwargs)
             except Exception as e:
-                main_arg = args[0] if args else None
-                print(f"{TaiwanTime.string(ms=True)} | {Color.RED.value}🔴 [Error] {func_name}({main_arg}): {str(e)}{Color.RESET.value}")
+                print(f"{TaiwanTime.string(ms=True)} | "
+                      f"{Color.RED.value}🔴 [Error] {func_name}: {e}{Color.RESET.value}")
                 raise
         return async_wrapper
-    else:  # 如果是普通 def
+    else:
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
             func_name = func.__name__
+            arg_str = build_arg_string(args, kwargs)
             try:
-                arg_str = f"{', '.join(map(str, args))}" if args else ""
-                kwarg_str = f"{kwargs}" if kwargs else ""
-                print(f"{TaiwanTime.string(ms=True)} | {Color.BLUE.value}🔵 [Function] {func_name}({arg_str}{kwarg_str}){Color.RESET.value}")
+                print(f"{TaiwanTime.string(ms=True)} | "
+                      f"{Color.BLUE.value}🔵 [Function] {func_name}({arg_str}){Color.RESET.value}")
                 return func(*args, **kwargs)
             except Exception as e:
-                main_arg = args[0] if args else None
-                print(f"{TaiwanTime.string(ms=True)} | {Color.RED.value}🔴 [Error] {func_name}({main_arg}): {str(e)}{Color.RESET.value}")
+                print(f"{TaiwanTime.string(ms=True)} | "
+                      f"{Color.RED.value}🔴 [Error] {func_name}: {e}{Color.RESET.value}")
                 raise
         return sync_wrapper
 
