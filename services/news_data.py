@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import re
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import jieba
 from collections import Counter
 from bs4 import BeautifulSoup as bs
@@ -113,7 +114,7 @@ def get_udn_news_summary(keyword, page=1) -> pd.DataFrame:
         title = item['title']
         summary = item['paragraph']
         time_str = item['time']['dateTime']
-        timestamp = int(datetime.strptime(time_str, "%Y-%m-%d %H:%M").timestamp())   # 轉成時間戳（單位：秒）
+        timestamp = int(datetime.strptime(time_str, "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Taipei")).timestamp())   # 轉成時間戳（單位：秒）
         data.append([timestamp, title, summary, url, 'udn'])
     return pd.DataFrame(data, columns=col)
 
@@ -134,7 +135,7 @@ def get_cnyes_news_summary(keyword, page=1) -> pd.DataFrame:
         title = item['title'].replace('⊕','*')
         title = re.sub(r'<.*?>', '', title)
         if "盤中速報" in title: continue   # 跳過指定關鍵字
-        timestamp = item['publishAt']+28800
+        timestamp = item['publishAt']
         summary = item['summary']
         data.append([timestamp, title, summary, url, 'cnyes'])
     return pd.DataFrame(data, columns=col)
