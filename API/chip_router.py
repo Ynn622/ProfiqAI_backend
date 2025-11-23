@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
+from util.score_manager import ScoreManager
 from services.chip_data import get_margin_data, get_chip_data, main_force_all_days
 
 router = APIRouter(prefix="/chip", tags=["籌碼面 Chip"])
@@ -43,26 +44,27 @@ def chip_score(stock_id: str):
     取得股票「籌碼面」指標資訊
     """
     from services.chip_data import calculate_chip_indicators
+    from services.ai_generate import ask_AI
+    
+    cached = ScoreManager.get_score(stock_id, score_type="chip")
+    if cached:
+        return JSONResponse(content=cached["data"])
+
     data = calculate_chip_indicators(stock_id)
+    score_payload = data.copy()
+    # 移除不必要的欄位以簡化輸入給 AI
+    for key in ['TotalScore', 'accurate', 'Close', 'close_result']:
+        data.pop(key, None)
+    prompt = f"""這是個股籌碼面資料，請你依據資料去解釋最後的評級，字數100內:{data}"""
+    data['ai_insight'] = ask_AI(prompt)
+    score_payload['ai_insight'] = data['ai_insight']
+    ScoreManager.save_score(
+        stock_id=stock_id,
+        data={"chip_data": score_payload},
+        score_type="chip",
+        direction=score_payload.get("direction"),
+    )
     if data:
         return JSONResponse(content={"chip_data": data})
     else:
         return JSONResponse(content={"message": "無法取得籌碼面資訊"}, status_code=404)
-    
-@router.get("/ai_insight")
-@log_print
-def ai_insight(stock_id: str):
-    """
-    取得股票「籌碼面」AI 分析建議
-    """
-    from services.chip_data import calculate_chip_indicators
-    from services.ai_generate import ask_AI
-    insight = calculate_chip_indicators(stock_id)
-    for key in ['TotalScore', 'accurate', 'Close', 'direction', 'close_result']:
-        insight.pop(key, None)
-    prompt = f"""這是個股籌碼面資料，請你依據檔案內所有資料去解釋最後的評級，字數100內:{insight}"""
-    ai_insight = ask_AI(prompt)
-    if insight:
-        return JSONResponse(content={"ai_insight": ai_insight})
-    else:
-        return JSONResponse(content={"message": "無法取得 AI 分析建議"}, status_code=404)

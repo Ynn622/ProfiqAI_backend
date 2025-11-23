@@ -38,7 +38,7 @@ class WebAgent(Agent):
             tools=[WebSearchTool(UserLocation(type="approximate", country="TW"), search_context_size='low')]
         )
 
-async def askAI(question: str, model: str, session_id: str = str(uuid.uuid4()) ) -> str:
+async def ask_AI_Agent(question: str, model: str, session_id: str = str(uuid.uuid4()) ) -> str:
     """
     詢問 AI 並獲得回應。
     Args:

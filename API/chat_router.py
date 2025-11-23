@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import asyncio
 
-from services.function_tools import askAI
+from services.function_tools import ask_AI_Agent
 from util.logger import log_print
 
 router = APIRouter(prefix="/chat", tags=["AI 聊天 (Chat)"])
@@ -16,5 +16,5 @@ class ChatRequest(BaseModel):
 @router.post("/chatBot")
 @log_print
 def ask(req: ChatRequest):
-    chat_response = asyncio.run(askAI(req.question, model=req.model.lower(), session_id=req.uuid))
+    chat_response = asyncio.run(ask_AI_Agent(req.question, model=req.model.lower(), session_id=req.uuid))
     return JSONResponse(content={'response': chat_response})
