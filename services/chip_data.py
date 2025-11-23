@@ -205,7 +205,8 @@ def calculate_chip_indicators(stock_id: str):
     # 2. 連續買賣天數
     def score_streak(x):
         if x >= 3: return 1
-        else: return -1
+        elif x <= -3: return -1
+        else: return 0
     cols = ['外資連續買賣','投信連續買賣','自營連續買賣','主力連續買賣']
     df['TotalScore'] += df[cols].map(score_streak).sum(axis=1)
     

@@ -48,3 +48,21 @@ def chip_score(stock_id: str):
         return JSONResponse(content={"chip_data": data})
     else:
         return JSONResponse(content={"message": "無法取得籌碼面資訊"}, status_code=404)
+    
+@router.get("/ai_insight")
+@log_print
+def ai_insight(stock_id: str):
+    """
+    取得股票「籌碼面」AI 分析建議
+    """
+    from services.chip_data import calculate_chip_indicators
+    from services.ai_generate import ask_AI
+    insight = calculate_chip_indicators(stock_id)
+    for key in ['TotalScore', 'accurate', 'Close', 'direction', 'close_result']:
+        insight.pop(key, None)
+    prompt = f"""這是個股籌碼面資料，請你依據檔案內所有資料去解釋最後的評級，字數100內:{insight}"""
+    ai_insight = ask_AI(prompt)
+    if insight:
+        return JSONResponse(content={"ai_insight": ai_insight})
+    else:
+        return JSONResponse(content={"message": "無法取得 AI 分析建議"}, status_code=404)
