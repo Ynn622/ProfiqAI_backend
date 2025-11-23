@@ -223,11 +223,17 @@ def basic_score(data: dict):
     for key, value in scores.items():
         data[f"{key}_Score"] = value
     
-    data["總分"] = sum(scores.values())
+    data["TotalScore"] = sum(scores.values())
     data["direction"] = (
-        2 if data["總分"] >= 7 else
-        1  if data["總分"] > 2 else
-        -1 if data["總分"] > -2 else
+        2 if data["TotalScore"] > 6 else
+        1  if data["TotalScore"] > 2 else
+        -1 if data["TotalScore"] > -2 else
         -2
+    )
+    data["direction_label"] = (
+        "極多" if data["TotalScore"] > 6 else
+        "偏多"  if data["TotalScore"] > 2 else
+        "偏空" if data["TotalScore"] > -2 else
+        "極空"
     )
     return data
