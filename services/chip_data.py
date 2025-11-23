@@ -245,8 +245,8 @@ def calculate_chip_indicators(stock_id: str):
     df.drop(columns=['Open', 'High', 'Low','Volume'], errors='ignore', inplace=True)
     
     # 評級標籤
-    df['direction'] = pd.cut(df['TotalScore'], bins=[-np.inf, -4, 1, 6, np.inf], labels=[-2, -1, 1, 2] ,right=False).astype(int)
-    df['direction_label'] = pd.cut(df['TotalScore'], bins=[-np.inf, -4, 1, 6, np.inf], labels=['極空', '偏空', '偏多', '極多'] ,right=False)
+    df['direction'] = pd.cut(df['TotalScore'], bins=[-np.inf, -3, 1, 6, np.inf], labels=[-2, -1, 1, 2]).astype(int)
+    df['direction_label'] = pd.cut(df['TotalScore'], bins=[-np.inf, -3, 1, 6, np.inf], labels=['極空', '偏空', '偏多', '極多'])
     
     df = df.iloc[::-1]
     latestdata_dict = df.iloc[0].to_dict()      # 取最新一筆資料轉成字典

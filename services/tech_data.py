@@ -125,12 +125,12 @@ def calculate_technical_indicators(stock_id: str):
     df['TotalScore'] = df[['EMA_Score','MACD_Score','KD_Score','RSI_Score','ROC_Score','BIAS_Score']].sum(axis=1)
     
     # 各指標評級標籤
-    df['EMA_label'] = pd.cut(df['EMA_Score'],  bins=[-np.inf, -1, 0, 1, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
-    df['MACD_label'] = pd.cut(df['MACD_Score'], bins=[-np.inf, -1.2, 0, 1.2, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
-    df['KD_label'] = pd.cut(df['KD_Score'], bins=[-np.inf, -1.2, 0, 1.2, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
-    df['RSI_label'] = pd.cut(df['RSI_Score'], bins=[-np.inf, -0.5, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
-    df['ROC_label'] = pd.cut(df['ROC_Score'], bins=[-np.inf, -0.5, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
-    df['BIAS_label'] = pd.cut(df['BIAS_Score'], bins=[-np.inf, -0.5, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'], right=False)
+    df['EMA_label'] = pd.cut(df['EMA_Score'],  bins=[-np.inf, -1.01, 0, 1, np.inf], labels=['極空', '偏空', '偏多', '極多'])
+    df['MACD_label'] = pd.cut(df['MACD_Score'], bins=[-np.inf, -1.21, 0, 1.2, np.inf], labels=['極空', '偏空', '偏多', '極多'])
+    df['KD_label'] = pd.cut(df['KD_Score'], bins=[-np.inf, -1.21, 0, 1.2, np.inf], labels=['極空', '偏空', '偏多', '極多'])
+    df['RSI_label'] = pd.cut(df['RSI_Score'], bins=[-np.inf, -0.51, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'])
+    df['ROC_label'] = pd.cut(df['ROC_Score'], bins=[-np.inf, -0.51, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'])
+    df['BIAS_label'] = pd.cut(df['BIAS_Score'], bins=[-np.inf, -0.51, 0, 0.5, np.inf], labels=['極空', '偏空', '偏多', '極多'])
     
     # EMA 狀態描述
     ema_rules = {
