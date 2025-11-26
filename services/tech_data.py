@@ -68,7 +68,7 @@ def get_technical_indicators(data, sdf_indicator_list):
 def calculate_technical_indicators(stock_id: str):
     from services.stock_data import getStockPrice, fetchStockInfo
 
-    stock_id = fetchStockInfo(stock_id)[0]
+    stock_id, _ = fetchStockInfo(stock_id)
     df = getStockPrice(symbol=stock_id, 
                         start='2024-06-10', 
                         chip_enable=False,
