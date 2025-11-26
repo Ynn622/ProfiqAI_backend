@@ -58,6 +58,7 @@ def get_margin_data(symbol: str, start: str, end: str=TaiwanTime.string(time=Fal
     def parseNum(text):
             text = text.replace(',', '').replace('%', '')
             try:
+                if len(text) == 0:  return 0     # 空字串視為0
                 return float(text) if '.' in text else int(text)  # 若有小數點 → 轉 float
             except ValueError:
                 return text  # 保留原字串以防特殊情況
@@ -222,6 +223,8 @@ def calculate_chip_indicators(stock_id: str):
     # 4. 融資券
     df['融資變動比'] = (df['融資增減'] / df['融資餘額']).round(4)
     df['融券變動比'] = (df['融券增減'] / df['融券餘額']).round(4)
+    df[['融資變動比', '融券變動比']] = (df[['融資變動比', '融券變動比']].replace([np.inf, -np.inf], np.nan).fillna(0)) # 避免除以0導致-np.inf
+    
     df['TotalScore'] += np.where(df['融資變動比'] > 0.05, -0.5,
                         np.where(df['融資變動比'] > 0.02, 1,
                         np.where(df['融資變動比'] < -0.05,  -1,
