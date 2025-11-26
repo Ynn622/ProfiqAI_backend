@@ -6,9 +6,8 @@ from util.nowtime import TaiwanTime
 from util.supabase_client import supabase
 
 
-class ScoreManager:
+class DataManager:
     """
-    負責紀錄 basic_score / chip_score 結果的工具。
     依照 stock_id / date / data / type(面向) 存放於 Supabase，並在本地記憶體
     以陣列/字典快取，減少重複請求。
 
@@ -86,7 +85,7 @@ class ScoreManager:
             )
             return getattr(response, "data", None)
         except Exception as exc:
-            Log(f"🔴 [ScoreManager] 儲存失敗: {exc}", color=Color.RED)
+            Log(f"🔴 [DataManager] 儲存失敗: {exc}", color=Color.RED)
             return None
 
     @classmethod
@@ -121,5 +120,5 @@ class ScoreManager:
                 return payload
             return None
         except Exception as exc:
-            Log(f"🔴 [ScoreManager] 讀取失敗: {exc}", color=Color.RED)
+            Log(f"🔴 [DataManager] 讀取失敗: {exc}", color=Color.RED)
             return None

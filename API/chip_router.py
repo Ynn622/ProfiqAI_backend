@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
-from util.score_manager import ScoreManager
+from util.data_manager import DataManager
 from services.chip_data import get_margin_data, get_chip_data, main_force_all_days
 
 router = APIRouter(prefix="/chip", tags=["籌碼面 Chip"])
@@ -46,7 +46,7 @@ def chip_score(stock_id: str):
     from services.chip_data import calculate_chip_indicators
     from services.ai_generate import ask_AI
     
-    cached = ScoreManager.get_score(stock_id, score_type="chip")
+    cached = DataManager.get_score(stock_id, score_type="chip")
     if cached:
         return JSONResponse(content=cached["data"])
 
@@ -58,7 +58,7 @@ def chip_score(stock_id: str):
     prompt = f"""這是個股籌碼面資料，請你依據資料去解釋最後的評級，字數100內:{data}"""
     data['ai_insight'] = ask_AI(prompt)
     score_payload['ai_insight'] = data['ai_insight']
-    ScoreManager.save_score(
+    DataManager.save_score(
         stock_id=stock_id,
         data={"chip_data": score_payload},
         score_type="chip",

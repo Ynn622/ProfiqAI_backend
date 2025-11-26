@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from util.logger import log_print
-from util.score_manager import ScoreManager
+from util.data_manager import DataManager
 from services.basic_data import basic_info
 
 router = APIRouter(prefix="/basic", tags=["基本面 Basic"])
@@ -16,7 +16,7 @@ def basic_score(stock_id: str):
     try:
         from services.ai_generate import ask_AI
         
-        cached = ScoreManager.get_score(stock_id, score_type="basic")
+        cached = DataManager.get_score(stock_id, score_type="basic")
         if cached:
             return JSONResponse(content=cached["data"])
 
@@ -28,7 +28,7 @@ def basic_score(stock_id: str):
         prompt = f"""這是個股基本面資料，請你依據資料去解釋最後的評級，字數100內:{data['basicData']}"""
         data['basicData']['ai_insight'] = ask_AI(prompt)
         score_payload['ai_insight'] = data['basicData']['ai_insight']
-        ScoreManager.save_score(
+        DataManager.save_score(
             stock_id=stock_id,
             data={**data, "basicData": score_payload},
             score_type="basic",
