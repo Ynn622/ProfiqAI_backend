@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Iterable
 
 from util.logger import Log, Color
 from util.nowtime import TaiwanTime
@@ -8,22 +8,25 @@ from util.supabase_client import supabase
 
 class DataManager:
     """
-    依照 stock_id / date / data / type(面向) 存放於 Supabase，並在本地記憶體
-    以陣列/字典快取，減少重複請求。
+    依照 stock_id / date / data / type(面向) 存放於 Supabase，並在本地記憶體以陣列/字典快取。
+    亦可透過 key_fields/table_name 自訂主鍵欄位（例如新聞情緒以 url 為主鍵）。
 
     - basic_data 每日 17:00 後更新
     - chip_data  每日 21:00 後更新
     """
 
-    TABLE_NAME = "stockScores"
+    STOCK_SCORE_TABLE = "stockScores"
+    NEWS_TABLE = "newsScores"
     BASIC_UPDATE_HOUR = 17
     CHIP_UPDATE_HOUR = 21
-    _local_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
-    # 結構: {stock_id: {date: {type: payload}}}
+    _local_cache: Dict[str, Dict[str, Any]] = {}
+    # 結構: {table: {cache_key: payload}}
 
     @staticmethod
-    def _normalize_stock_id(stock_id: str) -> str:
+    def _normalize_stock_id(stock_id: Optional[str]) -> str:
         """統一移除 .TW 之類的後綴。"""
+        if not stock_id:
+            return ""
         return stock_id.split(".")[0]
 
     @classmethod
@@ -43,44 +46,64 @@ class DataManager:
         return record_date.strftime("%Y-%m-%d")
 
     @classmethod
-    def _cache_get(cls, stock_id: str, record_date: str, score_type: str) -> Optional[Dict[str, Any]]:
-        stock_key = cls._normalize_stock_id(stock_id)
-        return cls._local_cache.get(stock_key, {}).get(record_date, {}).get(score_type)
+    def _make_cache_key(cls, key_fields: Dict[str, Any]) -> str:
+        return "|".join(f"{k}:{key_fields[k]}" for k in sorted(key_fields))
 
     @classmethod
-    def _cache_set(cls, stock_id: str, record_date: str, score_type: str, payload: Dict[str, Any]) -> None:
-        stock_key = cls._normalize_stock_id(stock_id)
-        cls._local_cache.setdefault(stock_key, {}).setdefault(record_date, {})[score_type] = payload
+    def _cache_get(cls, table: str, key_fields: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        cache_key = cls._make_cache_key(key_fields)
+        return cls._local_cache.get(table, {}).get(cache_key)
+
+    @classmethod
+    def _cache_set(cls, table: str, key_fields: Dict[str, Any], payload: Dict[str, Any]) -> None:
+        cache_key = cls._make_cache_key(key_fields)
+        cls._local_cache.setdefault(table, {})[cache_key] = payload
 
     @classmethod
     def save_score(
         cls,
-        stock_id: str,
+        stock_id: Optional[str],
         data: Dict[str, Any],
         score_type: str,
         score_date: Optional[str] = None,
         direction: Optional[Any] = None,
+        table_name: Optional[str] = None,
+        key_fields: Optional[Dict[str, Any]] = None,
+        conflict_keys: Optional[Iterable[str]] = None,
+        flatten_data: bool = False,
+        include_data: bool = True,
     ) -> Optional[Dict[str, Any]]:
         """
         以 upsert 方式存入 Supabase，避免重複插入，同步寫入本地快取。
+        可透過 key_fields/table_name 自訂主鍵欄位。若 include_data=False，則不存 data json。
         """
-        record_date = cls._resolve_score_date(score_type, score_date)
-        payload = {
-            "stock_id": cls._normalize_stock_id(stock_id),
-            "date": record_date,
-            "type": score_type,
-            "data": data,
-        }
+        table = table_name or cls.STOCK_SCORE_TABLE
+        if key_fields is None:
+            record_date = cls._resolve_score_date(score_type, score_date)
+            key_fields = {
+                "stock_id": cls._normalize_stock_id(stock_id),
+                "date": record_date,
+                "type": score_type,
+            }
+            conflict_keys = conflict_keys or ("stock_id", "date", "type")
+        else:
+            conflict_keys = conflict_keys or tuple(key_fields.keys())
+
+        payload: Dict[str, Any] = dict(key_fields)
+        if include_data:
+            payload["data"] = data
+        if flatten_data:
+            payload.update(data)
         if direction is not None:
             payload["direction"] = direction
 
         # local cache first
-        cls._cache_set(stock_id, record_date, score_type, payload)
+        cls._cache_set(table, key_fields, payload)
 
         try:
             response = (
-                supabase.table(cls.TABLE_NAME)
-                .upsert(payload, on_conflict="stock_id,date,type")
+                supabase.table(table)
+                .upsert(payload, on_conflict=",".join(conflict_keys))
                 .execute()
             )
             return getattr(response, "data", None)
@@ -91,32 +114,39 @@ class DataManager:
     @classmethod
     def get_score(
         cls,
-        stock_id: str,
+        stock_id: Optional[str],
         score_type: str,
         score_date: Optional[str] = None,
+        table_name: Optional[str] = None,
+        key_fields: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         取回指定日期與面向的紀錄；若未指定日期則套用時間邏輯。
-        先查本地快取，無資料再查 Supabase。
+        先查本地快取，無資料再查 Supabase。可透過 key_fields/table_name 自訂主鍵欄位。
         """
-        record_date = cls._resolve_score_date(score_type, score_date)
+        table = table_name or cls.STOCK_SCORE_TABLE
+        if key_fields is None:
+            record_date = cls._resolve_score_date(score_type, score_date)
+            key_fields = {
+                "stock_id": cls._normalize_stock_id(stock_id),
+                "type": score_type,
+                "date": record_date,
+            }
+        else:
+            record_date = key_fields.get("date")
 
-        cached = cls._cache_get(stock_id, record_date, score_type)
+        cached = cls._cache_get(table, key_fields)
         if cached:
             return cached
 
         try:
-            response = (
-                supabase.table(cls.TABLE_NAME)
-                .select("*")
-                .eq("stock_id", cls._normalize_stock_id(stock_id))
-                .eq("type", score_type)
-                .eq("date", record_date)
-                .execute()
-            )
+            query = supabase.table(table).select("*")
+            for key, value in key_fields.items():
+                query = query.eq(key, value)
+            response = query.execute()
             if getattr(response, "data", None):
                 payload = response.data[0]
-                cls._cache_set(stock_id, record_date, score_type, payload)
+                cls._cache_set(table, key_fields, payload)
                 return payload
             return None
         except Exception as exc:
