@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
+import datetime
 from stockstats import StockDataFrame as Sdf
 
 from util.logger import Log, Color
+from util.nowtime import TaiwanTime
 
 def get_technical_indicators(data, sdf_indicator_list):
     """
@@ -73,7 +75,8 @@ def calculate_technical_indicators(stock_id: str):
                         start='2024-06-10', 
                         chip_enable=False,
                         sdf_indicator_list=['close_5_ema', 'close_10_ema','macd', 'macds', 'macdh','kdjk', 'kdjd', 'rsi_5','close_5_roc','close_6_sma'])
-    
+    # 收盤前 → 排除今天資料
+    if TaiwanTime.now().time() < datetime.time(14, 00):  df = df[df.index < TaiwanTime.string(time=False)]
     df.rename(columns={'close_6_sma': 'SMA_6', 'RSI_5': 'RSI'}, inplace=True, errors='ignore')
     
     ma6 = df['SMA_6'] if 'SMA_6' in df.columns else df['Close'].rolling(6).mean()
@@ -222,4 +225,5 @@ def calculate_technical_indicators(stock_id: str):
     latestdata = df.iloc[0]
     latestdata_dict = latestdata.to_dict()
     latestdata_dict['date'] = str(df.index[0])  # 加入日期
-    return latestdata_dict
+    tech_df = df[['Open', 'High', 'Low', 'Close', 'Volume', 'EMA_5', 'EMA_10', 'MACD', 'Signal Line', 'Histogram', '%K', '%D', 'RSI', 'ROC', 'SMA_6']]
+    return latestdata_dict, tech_df

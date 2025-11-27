@@ -19,6 +19,7 @@ class DataManager:
     NEWS_TABLE = "newsScores"
     BASIC_UPDATE_HOUR = 17
     CHIP_UPDATE_HOUR = 21
+    TECH_UPDATE_HOUR = 14
     _local_cache: Dict[str, Dict[str, Any]] = {}
     # 結構: {table: {cache_key: payload}}
 
@@ -39,7 +40,12 @@ class DataManager:
             return score_date
 
         now = TaiwanTime.now()
-        cutoff = cls.CHIP_UPDATE_HOUR if score_type == "chip" else cls.BASIC_UPDATE_HOUR
+        cutoff = (
+            cls.CHIP_UPDATE_HOUR if score_type == "chip"
+            else cls.BASIC_UPDATE_HOUR if score_type == "basic"
+            else cls.TECH_UPDATE_HOUR if score_type == "tech"
+            else cls.BASIC_UPDATE_HOUR
+        )
         record_date = now.date()
         if now.hour < cutoff:
             record_date -= timedelta(days=1)
