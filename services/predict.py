@@ -7,6 +7,7 @@ import datetime
 from huggingface_hub import hf_hub_download
 
 from util.config import Env  # 確保環境變數被載入
+from util.nowtime import TaiwanTime
 
 # ===== 模型與設定 =====
 SEQ_LEN = 25
@@ -91,7 +92,7 @@ def get_predict_stock_data(symbol: str) -> pd.DataFrame:
     data = yf.Ticker(stockID).history(period="100d", interval="60m")
     data = data.round(2)
     data.index = pd.to_datetime(data.index).map(lambda x: x.date()).astype(str)
-    data = data[data.index != str(datetime.date.today())]   # 移除今天未收盤資料
+    data = data[data.index != TaiwanTime.string(time=False)]   # 移除今天未收盤資料
     data = data.drop(['Dividends', 'Stock Splits'], axis=1)
 
     sdf = Sdf.retype(data)
@@ -121,7 +122,8 @@ def get_predict_stock_data_talib(symbol: str) -> pd.DataFrame:
     data = data.round(2)
     data.index = pd.to_datetime(data.index).map(lambda x: x.date()).astype(str)
     data = data.drop(['Dividends', 'Stock Splits'], axis=1)
-    data = data[data.index != str(datetime.date.today())]   # 移除今天未收盤資料
+    # 收盤前 → 排除今天所有小時K
+    if TaiwanTime.now().time() < datetime.time(14, 00):  data = data[data.index < TaiwanTime.string(time=False)]
 
     macd, macdsignal, macdhist = talib.MACD(data['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
     data['MACD'] = macd
@@ -135,6 +137,5 @@ def get_predict_stock_data_talib(symbol: str) -> pd.DataFrame:
     data['RSI5'] = talib.RSI(data['Close'], timeperiod=5)
     data['RSI10'] = talib.RSI(data['Close'], timeperiod=10)
 
-    data = data.drop(['Open',	'High',	'Low', 'Volume'], axis=1).dropna()
-
+    data = data.drop(['Open', 'High', 'Low', 'Volume'], axis=1).dropna()
     return data[-25:]
