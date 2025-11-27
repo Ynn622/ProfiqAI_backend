@@ -131,5 +131,6 @@ def get_live_stock_info(stockID: str) -> dict:
 
     info.update(dic)
 
-    info['Trend'] = True if info['PreClose']<info['Close'] else False
+    diff = info['Close'] - info['PreClose']  # 計算漲跌值
+    info['Trend'] = 1 if diff > 0 else -1 if diff < 0 else 0  # 漲1、跌-1、平0
     return info
