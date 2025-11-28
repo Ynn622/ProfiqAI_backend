@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
 from util.data_manager import DataManager
+from util.stock_list import StockList
 from services.chip_data import get_margin_data, get_chip_data, main_force_all_days
 
 router = APIRouter(prefix="/chip", tags=["籌碼面 Chip"])
@@ -50,12 +51,13 @@ def chip_score(stock_id: str):
     if cached:
         return JSONResponse(content=cached["data"])
 
+    _, stock_name = StockList.query(stock_id)
     data = calculate_chip_indicators(stock_id)
     score_payload = data.copy()
     # 移除不必要的欄位以簡化輸入給 AI
     for key in ['TotalScore', 'accurate', 'Close', 'close_result']:
         data.pop(key, None)
-    prompt = f"""這是個股籌碼面資料，請你依據資料去解釋最後的評級，字數100內:{data}"""
+    prompt = f"""以下是{stock_name}的籌碼面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data}"""
     data['ai_insight'] = ask_AI(prompt)
     score_payload['ai_insight'] = data['ai_insight']
     DataManager.save_score(

@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from util.logger import log_print
 from util.data_manager import DataManager
+from util.stock_list import StockList
 
 router = APIRouter(prefix="/tech", tags=["技術面 Tech"])
 
@@ -26,11 +27,12 @@ def tech_score(stock_id: str):
     
     if summary:
         summary_dict = summary.copy()
+        _, stock_name = StockList.query(stock_id)
         # 移除不必要的欄位以簡化輸入給 AI
         for key in ['TotalScore', 'accurate', 'result', 'EMA_Score', 'MACD_Score', 'KD_Score', 'RSI_Score', 'ROC_Score', 'SMA_Score', 'BIAS_Score']:
             summary_dict.pop(key, None)
-        history_payload = history_tech_df.reset_index().to_dict(orient="records")
-        prompt = f"""這是個股技術面資料，請你依據資料去簡單解釋最後的評級，字數100內:{ {'資料摘要': summary_dict, '近期走勢': history_payload[:5]} }"""
+        history_payload = history_tech_df[:10]
+        prompt = f"""以下是{stock_name}的技術面資料，請用繁體中文生成100字內快速摘要，去解釋評級與走勢:{ {'資料摘要': summary_dict, '近期走勢': history_payload} }"""
         summary["ai_insight"] = ask_AI(prompt)
         DataManager.save_score(
             stock_id=stock_id,
