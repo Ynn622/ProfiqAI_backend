@@ -22,7 +22,7 @@ class FinAgent(Agent):
             name="Finance Agent",
             model=model,
             instructions=instructions,
-            tools=[toolFetchStockInfo, toolGetStockPrice, toolFetchStockNews, toolFetchTwiiNews, toolFetchETFIngredients],
+            tools=[toolQueryStock, toolGetStockPrice, toolFetchStockNews, toolFetchTwiiNews, toolFetchETFIngredients],
             handoffs=[WebAgent(model=model)],
             handoff_description="當使用者的問題是金融相關，且無法從金融分析師 Agent 解決時，才交由 Web Agent 處理。非股票相關問題請直接回覆使用者，不要交給 Web Agent。"
         )
@@ -58,22 +58,22 @@ async def ask_AI_Agent(question: str, model: str, session_id: str = str(uuid.uui
 
 @function_tool
 @log_print
-async def toolFetchStockInfo(stockName: str) -> str:
+async def toolQueryStock(keyword: str) -> str:
     """
     股票代號&名稱查詢。
     Args:
-        stockName (str): 股票名稱或代碼，例如 "鴻海" 或 "2317"。
+        keyword (str): 股票名稱或代碼，例如 "鴻海" 或 "2317"。
     Returns:
         str: 包含股票代號與名稱的字串。
     Example:
-        toolFetchStockInfo("鴻海") -> ('2317.TW','鴻海')
+        toolQueryStock("鴻海") -> ('2317.TW','鴻海')
     """
-    from services.stock_data import fetchStockInfo
+    from util.stock_list import StockList
     try:
-        stockID, stockName = fetchStockInfo(stockName)
+        stockID, stockName = StockList.query(keyword)
         return stockID, stockName
     except Exception as e:
-        return f"Error fetching stock info: {stockName}!"
+        return f"Error query stock info: {keyword}!"
 
 @function_tool
 @log_print

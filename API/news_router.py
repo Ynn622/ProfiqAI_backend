@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from util.logger import log_print
 from util.nowtime import TaiwanTime
 from util.data_manager import DataManager
+from util.stock_list import StockList
 
 from services.news_data import stock_news_split_word, news_summary
 
@@ -36,9 +37,8 @@ def news_score(stock_id: str):
     """
     from services.news_sentiment import total_news_sentiment
     from services.ai_generate import ask_AI
-    from services.stock_data import fetchStockInfo
     try:
-        _, stock_name = fetchStockInfo(stock_id)
+        _, stock_name = StockList.query(stock_id)
         sentiment_scores = total_news_sentiment(stock_id, page=1)
         contents = sentiment_scores.get("contents", [])
         sentiment_scores.pop("contents", None)

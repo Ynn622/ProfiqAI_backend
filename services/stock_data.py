@@ -7,21 +7,6 @@ from util.logger import Log, Color
 from services.chip_data import get_chip_data
 from services.tech_data import get_technical_indicators
 
-def fetchStockInfo(stockName: str) -> str:
-    """
-    股票代號&名稱查詢。
-    toolFetchStockInfo() 會自動調用此函數。
-    """
-    try:
-        url = f"https://tw.stock.yahoo.com/_td-stock/api/resource/WaferAutocompleteService;view=wafer&query={stockName}"
-        response = requests.get(url)
-        stockID = bs(response.json()["html"], features="lxml").find("a")["href"].split('stock_id=')[1]
-        stockName = bs(response.json()["html"], features="lxml").find("span").text
-    except Exception as e:
-        stockID = None
-        stockName = None
-    return stockID, stockName
-
 
 def getStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[], chip_enable: bool = True) -> pd.DataFrame:
     """

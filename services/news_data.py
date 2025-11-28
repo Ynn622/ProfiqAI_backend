@@ -10,6 +10,7 @@ import html
 import time
 
 from util.config import Env  # 確保環境變數被載入
+from util.stock_list import StockList
 
 stopwords_set = set()       # 停用詞集合
 
@@ -27,9 +28,8 @@ def FetchStockNews(stock_name: str, num: int = 10, include_url: bool=False) -> p
     toolFetchStockNews() 會自動調用此函數。
     """
     from services.news_data import get_udn_news_summary
-    from services.stock_data import fetchStockInfo
     
-    stock_id, stockName = fetchStockInfo(stock_name)
+    stock_id, stockName = StockList.query(stock_name)
     stock_id = stock_id.split('.')[0]
     stockName = re.sub(r'[-*].*$', '', stockName)  # 去除股票名稱中的特殊字符
     
@@ -81,8 +81,7 @@ def news_summary(stock_id: str, page: int=1) -> pd.DataFrame:
     Returns:
         DataFrame: 時間戳、新聞標題、摘要、網址、來源。
     """
-    from services.stock_data import fetchStockInfo
-    _, stockName = fetchStockInfo(stock_id)
+    _, stockName = StockList.query(stock_id)
 
     udn_df = get_udn_news_summary(f'{stockName} {stock_id}', page=page)
     cnyes_df = get_cnyes_news_summary(stockName, page=page)

@@ -8,6 +8,7 @@ from util.logger import Log, Color
 from util.nowtime import TaiwanTime
 from util.config import Env  # 確保環境變數被載入
 from util.supabase_client import supabase
+from util.stock_list import StockList
 
 scraper = cloudscraper.create_scraper()   # 防檔爬蟲用
 
@@ -174,10 +175,10 @@ def calculate_consecutive_status(column):
     return result
 
 def calculate_chip_indicators(stock_id: str):
-    from services.stock_data import fetchStockInfo, getStockPrice
+    from services.stock_data import getStockPrice
     
     start_date = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")  # 最近30天資料
-    stock_id, stock_name = fetchStockInfo(stock_id)
+    stock_id, stock_name = StockList.query_from_yahoo(stock_id)
     stock_data = getStockPrice(stock_id, start_date)
     main_force_data = main_force_all_days(stock_id, stock_data.index)
     margin_data = get_margin_data(stock_id, start_date, select_columns=['融資增減', '融資餘額', '融券增減', '融券餘額', '融券券資比%'])

@@ -8,6 +8,7 @@ from huggingface_hub import hf_hub_download
 
 from util.config import Env  # 確保環境變數被載入
 from util.nowtime import TaiwanTime
+from util.stock_list import StockList
 
 # ===== 模型與設定 =====
 SEQ_LEN = 25
@@ -86,9 +87,8 @@ def get_predict_stock_data(symbol: str) -> pd.DataFrame:
         symbol (str): 股票代號
     """
     from stockstats import StockDataFrame as Sdf
-    from services.stock_data import fetchStockInfo
     
-    stockID, _ = fetchStockInfo(symbol)
+    stockID, _ = StockList.query_from_yahoo(symbol)
     data = yf.Ticker(stockID).history(period="100d", interval="60m")
     data = data.round(2)
     data.index = pd.to_datetime(data.index).map(lambda x: x.date()).astype(str)
@@ -115,9 +115,8 @@ def get_predict_stock_data_talib(symbol: str) -> pd.DataFrame:
         symbol (str): 股票代號
     """
     import talib
-    from services.stock_data import fetchStockInfo
     
-    stockID, _ = fetchStockInfo(symbol)
+    stockID, _ = StockList.query_from_yahoo(symbol)
     data = yf.Ticker(stockID).history(period="100d", interval="60m")
     data = data.round(2)
     data.index = pd.to_datetime(data.index).map(lambda x: x.date()).astype(str)

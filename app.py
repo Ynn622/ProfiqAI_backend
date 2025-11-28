@@ -70,12 +70,12 @@ app.add_middleware(
 
 # 引入路由
 app.include_router(stock_router.router)
-app.include_router(predict_router.router)
 app.include_router(basic_router.router)
 app.include_router(chip_router.router)
 app.include_router(news_router.router)
-app.include_router(chat_router.router)
 app.include_router(tech_router.router)
+app.include_router(predict_router.router)
+app.include_router(chat_router.router)
 
 @app.get("/")
 def root():

@@ -5,6 +5,7 @@ from stockstats import StockDataFrame as Sdf
 
 from util.logger import Log, Color
 from util.nowtime import TaiwanTime
+from util.stock_list import StockList
 
 def get_technical_indicators(data, sdf_indicator_list):
     """
@@ -68,9 +69,9 @@ def get_technical_indicators(data, sdf_indicator_list):
 
 
 def calculate_technical_indicators(stock_id: str):
-    from services.stock_data import getStockPrice, fetchStockInfo
-
-    stock_id, _ = fetchStockInfo(stock_id)
+    from services.stock_data import getStockPrice
+    
+    stock_id, _ = StockList.query_from_yahoo(stock_id)
     df = getStockPrice(symbol=stock_id, 
                         start='2024-06-10', 
                         chip_enable=False,
