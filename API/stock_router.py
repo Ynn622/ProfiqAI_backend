@@ -40,7 +40,7 @@ def stock_info(stock_id: str):
     """
     try:
         info = get_live_stock_info(stock_id)
-        return JSONResponse(content={'stockID': stock_id, 'info': info})
+        return JSONResponse(content={'info': info})
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

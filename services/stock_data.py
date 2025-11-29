@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup as bs
 import yfinance as yf
 
 from util.logger import Log, Color
+from util.nowtime import TaiwanTime
 from services.chip_data import get_chip_data
 from services.tech_data import get_technical_indicators
 
@@ -94,28 +95,36 @@ def get_live_stock_info(stockID: str) -> dict:
     soup = bs(quoteWeb.text, "html.parser")
 
     info = {}
-
-    nowtime = soup.find("time").find_all("span")[2].text
-    nowtime = pd.to_datetime(nowtime).strftime("%Y-%m-%d")
-    info['Date'] = nowtime
-    info['StockName'] = soup.find('h1', class_='C($c-link-text) Fw(b) Fz(24px) Mend(8px) Whs(nw)').text
+    try:
+        nowtime = soup.find("time").find_all("span")[2].text
+        nowtime = pd.to_datetime(nowtime).strftime("%Y-%m-%d")
+    except Exception as e:
+        Log(f"[StockData] 無更新時間: {str(e)}", color=Color.YELLOW)
+        nowtime = TaiwanTime().now().strftime("%Y-%m-%d")
+    info['date'] = nowtime
+    info['stockName'] = soup.find('h1', class_='C($c-link-text) Fw(b) Fz(24px) Mend(8px) Whs(nw)').text
+    info['stockID'] = stockID
 
     priceTable = soup.find("ul",class_="D(f) Fld(c) Flw(w) H(192px) Mx(-16px)").find_all("li")
-    dic = {'Close': 0,
-        'Open': 1,
-        'High': 2,
-        'Low': 3,
-        'Volume': 5 if stockID in ("^TWII", "^TWOII") else 9,
-        'Change': 8,
-        'ChangePct': 7,
-        'PreClose': 6}
+    dic = {'close': 0,
+        'open': 1,
+        'high': 2,
+        'low': 3,
+        'volume': 5 if stockID in ("^TWII", "^TWOII") else 9,
+        'change': 8,
+        'pct': 7,
+        'preClose': 6}
 
     for key, value in dic.items():
-        row = float(priceTable[value].find_all("span")[1].text.replace(",","").replace("%",""))
-        dic[key] = row
+        row = priceTable[value].find_all("span")[1].text.replace(",", "").replace("%", "")
+        dic[key] = float(row) if row != '-' else None
 
     info.update(dic)
+    # 判斷漲跌趨勢（先檢查有值）
+    if info['close'] is None or info['preClose'] is None:
+        info['trend'] = 0
+    else:
+        diff = info['close'] - info['preClose']
+        info['trend'] = 1 if diff > 0 else -1 if diff < 0 else 0
 
-    diff = info['Close'] - info['PreClose']  # 計算漲跌值
-    info['Trend'] = 1 if diff > 0 else -1 if diff < 0 else 0  # 漲1、跌-1、平0
     return info
