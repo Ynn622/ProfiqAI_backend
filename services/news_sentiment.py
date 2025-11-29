@@ -1,10 +1,9 @@
 import pandas as pd
-import time
 from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 import gc
 
-from util.config import Env  # 確保環境變數被載入
+from util.logger import Log, Color
 from util.data_manager import DataManager
 from services.news_data import get_udn_news_summary, parse_article
 
@@ -82,7 +81,7 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
                 contents.append(cached_content)
                 continue
 
-        if Env.RELOAD: print(f"計算情感分數中：{i+1}/{len(news_summary_df)}   ", end="\r")
+        Log(f"[情感分析] 新聞處理中：{i+1}/{len(news_summary_df)}   ", end="\r", reload_only=True)
         text = parse_article(url, source=source)
 
         try:
@@ -108,7 +107,7 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
                     include_data=False,
                 )
         except Exception as e:
-            print(f"🔴 [Error] At {i}: {e}")
+            Log(f"[情感分析] Error At {i}: {e}", color=Color.RED)
             scores.append([None, None, None])
             contents.append(None)
         torch.cuda.empty_cache()  # 清理記憶體
@@ -117,7 +116,7 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
     score_df["content"] = contents
     score_df.index = news_summary_df.index
     score_df.index.name = "日期"
-    if Env.RELOAD: print(f"\r Done: 新聞情感分數計算完畢！{' '*40}")
+    Log(f"[情感分析] 新聞處理完成！{' '*20}", end="\r", color=Color.GREEN, reload_only=True)
     data = pd.concat([news_summary_df, score_df], axis=1)[['Url', 'content', 'positive', 'neutral', 'negative']]
     return data
 

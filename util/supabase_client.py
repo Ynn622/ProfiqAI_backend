@@ -4,6 +4,7 @@ Supabase Client 單例模組
 """
 from supabase import create_client, Client
 from util.config import Env
+from util.logger import Log, Color
 
 
 class SupabaseClient:
@@ -20,6 +21,7 @@ class SupabaseClient:
         """
         if cls._instance is None:
             cls._instance = create_client(Env.SUPABASE_URL, Env.SUPABASE_KEY)
+            Log(f"[SupabaseClient] 建立連線完成！", color=Color.GREEN)
         return cls._instance
 
 

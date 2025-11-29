@@ -52,7 +52,7 @@ def get_technical_indicators(data, sdf_indicator_list):
             _ = stock_df[indicator]
             valid_indicators.append(indicator)
         except (KeyError, Exception) as e:
-            Log(f"⚠️  [Warning] 無法計算指標 '{indicator}': {str(e)}", color=Color.YELLOW)
+            Log(f"[TechData] 無法計算指標 '{indicator}': {str(e)}", color=Color.YELLOW)
             continue
 
     # 取出需要的指標資料

@@ -114,7 +114,7 @@ class DataManager:
             )
             return getattr(response, "data", None)
         except Exception as exc:
-            Log(f"🔴 [DataManager] 儲存失敗: {exc}", color=Color.RED)
+            Log(f"[DataManager] 儲存失敗: {exc}", color=Color.RED)
             return None
 
     @classmethod
@@ -156,5 +156,5 @@ class DataManager:
                 return payload
             return None
         except Exception as exc:
-            Log(f"🔴 [DataManager] 讀取失敗: {exc}", color=Color.RED)
+            Log(f"[DataManager] 讀取失敗: {exc}", color=Color.RED)
             return None

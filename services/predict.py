@@ -6,8 +6,8 @@ import yfinance as yf
 import datetime
 from huggingface_hub import hf_hub_download
 
-from util.config import Env  # 確保環境變數被載入
 from util.nowtime import TaiwanTime
+from util.logger import Log, Color
 from util.stock_list import StockList
 
 # ===== 模型與設定 =====
@@ -77,7 +77,7 @@ def predict_future(symbol: str):
         logit = model(X_tensor)
         prob_up = torch.sigmoid(logit).item()
 
-    if Env.RELOAD: print(f"📊 Predict: {symbol} 未來1天上漲機率：{prob_up:.2%}  下跌機率：{1 - prob_up:.2%}")
+    Log(f"[Predict] {symbol} 未來1天上漲機率：{prob_up:.2%}  下跌機率：{1 - prob_up:.2%}", color=Color.ORANGE, reload_only=True)
     return round(prob_up, 2)
 
 def get_predict_stock_data(symbol: str) -> pd.DataFrame:

@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup as bs
 import html
 import time
 
-from util.config import Env  # 確保環境變數被載入
+from util.logger import Log, Color
 from util.stock_list import StockList
 
 stopwords_set = set()       # 停用詞集合
@@ -41,9 +41,10 @@ def FetchStockNews(stock_name: str, num: int = 10, include_url: bool=False) -> p
 
     news_content = []
     for i, url in enumerate(urls):
-        if Env.RELOAD: print(f"抓取新聞中 - {i+1}/{len(urls)} ", end="\r")  # debug 時 顯示進度
+        Log(f"[新聞爬取] 進度 - {i+1}/{len(urls)} ", end="\r", reload_only=True)  # debug 時 顯示進度
         article = parse_article(url, source='udn')  # 爬取完整新聞內容
         news_content.append(article)
+    Log(f"[新聞爬取] 抓取完成！{' '*20}", end="\r", color=Color.GREEN, reload_only=True)
     udn_df['Content'] = news_content
     udn_df['Date'] = udn_df['TimeStamp'].apply(lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M"))  # 轉換 時間戳->日期
     col = ['Date', 'Title', 'Content']
@@ -166,7 +167,7 @@ def parse_article(url: str, source: str='udn') -> str:
                     break
             return news_data
     except Exception as e:
-        print(f"🔴 [Error] 抓取新聞錯誤：{e}")
+        Log(f"[新聞爬取] 錯誤：{e}", color=Color.RED)
     return ""
 
 

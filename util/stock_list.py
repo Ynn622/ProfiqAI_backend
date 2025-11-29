@@ -45,7 +45,7 @@ class StockList:
             },
             inplace=True,
         )
-        Log(f"🟢 [StockList] 下載股票清單完成，共 {len(df)} 檔股票。", color=Color.GREEN)
+        Log(f"[StockList] 下載股票清單完成，共 {len(df)} 檔股票。", color=Color.GREEN)
         return df
 
     @classmethod
@@ -136,7 +136,7 @@ class StockList:
             stockID = bs(response.json()["html"], features="lxml").find("a")["href"].split('stock_id=')[1]
             stockName = bs(response.json()["html"], features="lxml").find("span").text
         except Exception as e:
-            Log(f"🔴 [StockList] Yahoo 查詢失敗: {e}", color=Color.RED)
+            Log(f"[StockList] Yahoo 查詢失敗: {e}", color=Color.RED)
         return stockID, stockName
 
 StockList._ensure_cache()  # 初始化快取

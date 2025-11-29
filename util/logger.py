@@ -2,6 +2,7 @@ from functools import wraps
 import inspect
 from enum import Enum
 
+from util.config import Env
 from util.nowtime import TaiwanTime
 
 # === 顏色設定 ===
@@ -12,6 +13,17 @@ class Color(Enum):
     BLUE = "\033[94m"     # 藍色
     GREEN = "\033[92m"    # 綠色
     YELLOW = "\033[93m"   # 黃色
+    ORANGE = "\033[38;5;208m"   # 橙色
+
+# 顏色對應 icon
+ICON_BY_COLOR = {
+    Color.PURPLE: "🟣",
+    Color.RED: "🔴",
+    Color.BLUE: "🔵",
+    Color.GREEN: "🟢",
+    Color.YELLOW: "🟡",
+    Color.ORANGE: "🟠",
+}
 
 # === 日誌裝飾器 ===
 def log_print(func):
@@ -53,6 +65,18 @@ def log_print(func):
                 raise
         return sync_wrapper
 
-def Log(*args, color: Color = Color.BLUE, sep=" ", end="\n"):
+def Log(*args, color: Color = Color.BLUE, sep=" ", end="\n", reload_only: bool = False):
+    """
+    印出帶有時間戳記與顏色的日誌訊息。
+    Args:
+        *args: 要印出的訊息內容。
+        color (Color): 訊息顏色，預設為藍色。
+        sep (str): 訊息間的分隔符號，預設為空格。
+        end (str): 訊息結尾的字元，預設為換行符號。
+        reload_only (bool): 是否僅在 Env.RELOAD=True 時印出訊息，預設為 False。
+    """
+    if reload_only and not Env.RELOAD:
+        return
+    icon = ICON_BY_COLOR.get(color, "")
     message = sep.join(str(arg) for arg in args)
-    print(f"{TaiwanTime.string(ms=True)} | {color.value}{message}{Color.RESET.value}", end=end)
+    print(f"{TaiwanTime.string(ms=True)} | {icon} {color.value}{message}{Color.RESET.value}", end=end)

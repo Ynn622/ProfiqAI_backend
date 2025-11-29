@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup as bs
 
 from util.logger import Log, Color
 from util.nowtime import TaiwanTime
-from util.config import Env  # 確保環境變數被載入
 from util.supabase_client import supabase
 from util.stock_list import StockList
 
@@ -17,7 +16,7 @@ def get_chip_data(symbol: str, start: str, end: str=TaiwanTime.string(time=False
     用於取得最新籌碼面資料。
     """
     if symbol in ("^TWII", "^TWOII"):
-        Log(f"[function] get_chip_data(): 不提供籌碼面資料: {symbol}", color=Color.PURPLE)
+        Log(f"[三大法人] 指數類不提供資料", color=Color.YELLOW)
         return pd.DataFrame()
     symbol = symbol.split(".")[0]  # 去除後綴
     url = f"https://fubon-ebrokerdj.fbs.com.tw/z/zc/zcl/zcl.djhtm?a={symbol}&c={start}&d={end}"
@@ -106,12 +105,12 @@ def main_force_all_days(stock_id, date_list):
     sql_preupload = []
 
     if len(sql_response.data):
-        if Env.RELOAD: print(f" Find: {stock_id} supabase 已存在！")
+        Log(f"[主力] {stock_id} supabase 已存在！", color=Color.ORANGE, reload_only=True)
         sql_df = pd.DataFrame(sql_response.data).set_index("date")
         sql_df.index = pd.to_datetime(sql_df.index)
 
     for date in date_list:
-        if Env.RELOAD: print(f"\r主力資料截取中：{date}", end="")
+        Log(f"[主力] 資料截取中：{date}", end="\r", reload_only=True)
         # 檢查 Supabase 是否已有資料
         if (sql_df is not None) and (date in sql_df.index):
             main_force_list.append(sql_df.loc[date, "mainForce"])
@@ -122,7 +121,7 @@ def main_force_all_days(stock_id, date_list):
           result = main_force_one_day(stock_id, date)
         main_force_list.append(result[0]-result[1])
         if result == (np.nan, np.nan):
-            print(f"\r  Alert: {date} 無主力資料，跳過！")
+            Log(f"[主力] {date} 無主力資料，跳過！{' '*20}", color=Color.YELLOW, reload_only=True)
             continue  # 如果沒有資料，不存入資料庫
         sql_preupload.append({
             "stock_id": stock_id,
@@ -132,7 +131,7 @@ def main_force_all_days(stock_id, date_list):
 
     # 儲存到 Supabase
     if len(sql_preupload):
-        print(f"\r儲存主力資料中...{' '*15}", end="")
+        Log(f"[主力] 儲存主力資料中...{' '*20}", end="\r", reload_only=True)
         response = (
             supabase.table("stockMainForceData")
             .insert(sql_preupload)
@@ -141,7 +140,7 @@ def main_force_all_days(stock_id, date_list):
 
     main_force_df = pd.DataFrame(main_force_list, columns=["主力買賣超"], index=date_list)
     
-    if Env.RELOAD: print(f"\r Done: 主力資料-載入完畢！")
+    Log(f"[主力] 資料載入完畢！{' '*20}", color=Color.GREEN, reload_only=True)
     return main_force_df
 
 def main_force_one_day(stock_id, date):
@@ -159,7 +158,7 @@ def main_force_one_day(stock_id, date):
         sell_value = int(buysell[1].text.replace(",", ""))  # 賣超
         return buy_value, sell_value
     except Exception as e:
-        print(f" \n{date} 發生錯誤：{e}")
+        Log(f" \n[主力] {date} 發生錯誤：{e}", color=Color.RED)
         return None
 
 #定義計算連續買賣超狀態
