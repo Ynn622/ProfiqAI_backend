@@ -254,4 +254,8 @@ def calculate_chip_indicators(stock_id: str):
     df = df.iloc[::-1]
     latestdata_dict = df.iloc[0].to_dict()      # 取最新一筆資料轉成字典
     latestdata_dict['date'] = str(df.index[0])  # 加入日期
+    # 將欄位名稱轉回英文
+    latestdata_dict['foreign'] = latestdata_dict.get('外資', 0)
+    latestdata_dict['dealer'] = latestdata_dict.get('投信', 0)
+    latestdata_dict['investor'] = latestdata_dict.get('自營商', 0)
     return latestdata_dict

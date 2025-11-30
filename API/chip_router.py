@@ -55,7 +55,7 @@ def chip_score(stock_id: str):
     data = calculate_chip_indicators(stock_id)
     score_payload = data.copy()
     # 移除不必要的欄位以簡化輸入給 AI
-    for key in ['TotalScore', 'accurate', 'Close', 'close_result']:
+    for key in ['TotalScore', 'accurate', 'Close', 'close_result', 'foreign', 'dealer', 'investor']:
         data.pop(key, None)
     prompt = f"""以下是{stock_name}的籌碼面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data}"""
     data['ai_insight'] = ask_AI(prompt)
@@ -67,6 +67,6 @@ def chip_score(stock_id: str):
         direction=score_payload.get("direction"),
     )
     if data:
-        return JSONResponse(content={"chip_data": data})
+        return JSONResponse(content={"chip_data": score_payload})
     else:
         return JSONResponse(content={"message": "無法取得籌碼面資訊"}, status_code=404)

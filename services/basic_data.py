@@ -212,7 +212,7 @@ def basic_score(data: dict):
         "PE_ratio": score_by_thresholds(data["PE_ratio"], PE_THRESHOLDS),
         "MoM": score_by_thresholds(data["MoM"] / 100, MOM_THRESHOLDS),
         "YoY": score_by_thresholds(data["YoY"] / 100, YOY_THRESHOLDS),
-        "eps": score_by_thresholds(data["eps"], EPS_THRESHOLDS),
+        "EPS": score_by_thresholds(data["eps"], EPS_THRESHOLDS),
         "ROE": score_by_thresholds(data["ROE"] / 100, ROE_THRESHOLDS),
         "ROA": score_by_thresholds(data["ROA"] / 100, ROA_THRESHOLDS),
         "GPM": score_by_thresholds(data["GPM"] / 100, GPM_THRESHOLDS),

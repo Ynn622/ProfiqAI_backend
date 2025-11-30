@@ -16,6 +16,7 @@ def basic_score(stock_id: str):
     """
     try:
         from services.ai_generate import ask_AI
+        from util.score_utils import split_scores_by_sign
         
         cached = DataManager.get_score(stock_id, score_type="basic")
         if cached:
@@ -24,6 +25,7 @@ def basic_score(stock_id: str):
         _, stock_name = StockList.query(stock_id)
         data = basic_info(stock_id)
         score_payload = data["basicData"].copy()
+        data["basicData"]['score_distribution'] = split_scores_by_sign(data['basicData'])
         # 移除不必要的欄位以簡化輸入給 AI
         for key in ['TotalScore']:
             data['basicData'].pop(key, None)

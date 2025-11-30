@@ -15,6 +15,7 @@ def tech_score(stock_id: str):
     """
     from services.tech_data import calculate_technical_indicators
     from services.ai_generate import ask_AI
+    from util.score_utils import split_scores_by_sign
 
     cached = DataManager.get_score(
         stock_id=stock_id,
@@ -33,6 +34,7 @@ def tech_score(stock_id: str):
             summary_dict.pop(key, None)
         history_payload = history_tech_df[:10]
         prompt = f"""以下是{stock_name}的技術面資料，請用繁體中文生成100字內快速摘要，去解釋評級與走勢:{ {'資料摘要': summary_dict, '近期走勢': history_payload} }"""
+        summary["score_distribution"] = split_scores_by_sign(summary)
         summary["ai_insight"] = ask_AI(prompt)
         DataManager.save_score(
             stock_id=stock_id,
