@@ -182,13 +182,11 @@ def basic_info(stock_id: str):
     basic_data["YoY"] = r["yoy"][0]
     basic_data["stockSplits"] = dividend["capitalGains"][0]
     basic_data["dateDividend"] = dividend["date"][0]
+    basic_data["revenue"] = r
+    basic_data["eps_trend"] = eps
+    basic_data["dividend"] = dividend
 
-    json_data = {
-        "basicData": basic_data,
-        "revenue": r,
-        "eps": eps,
-        "dividend": dividend,
-    }
+    json_data = {"basicData": basic_data}
     basic_score(json_data["basicData"])
     return json_data
 
