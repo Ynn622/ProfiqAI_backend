@@ -26,10 +26,11 @@ def basic_score(stock_id: str):
         data = basic_info(stock_id)
         score_payload = data["basicData"].copy()
         data["basicData"]['score_distribution'] = split_scores_by_sign(data['basicData'])
+        score_payload['score_distribution'] = data["basicData"]['score_distribution']
         # 移除不必要的欄位以簡化輸入給 AI
         for key in ['TotalScore']:
             data['basicData'].pop(key, None)
-        prompt = f"""以下是{stock_name}的基本面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data['basicData']}"""
+        prompt = f"""以下是{stock_name}的基本面資料,請用繁體中文生成100字內快速摘要,去解釋評級:{data['basicData']}"""
         data['basicData']['ai_insight'] = ask_AI(prompt)
         score_payload['ai_insight'] = data['basicData']['ai_insight']
         DataManager.save_score(

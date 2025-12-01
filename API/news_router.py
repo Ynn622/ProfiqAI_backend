@@ -50,10 +50,10 @@ def news_score(stock_id: str):
 
         DataManager.save_score(
             stock_id=stock_id,
-            data=sentiment_scores,
+            data={"news_data": sentiment_scores},
             score_type="news",
             direction=sentiment_scores.get("direction"),
         )
-        return JSONResponse(sentiment_scores)
+        return JSONResponse(content={"news_data": sentiment_scores})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
