@@ -8,6 +8,7 @@ def get_PE_Ratio(stockID):
     獲取 PE Ratio / PE Ratio產業平均。
     '''
     try:
+        Log(f"[BasicData] {stockID} 獲取 PE Ratio 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
         quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}',timeout=3)
         quoteSoup = bs(quoteWeb.text, 'html.parser')
         PE_ratio_table = quoteSoup.find_all('span',class_='Fz(16px) C($c-link-text) Mb(4px)')[1].text
@@ -30,6 +31,7 @@ def get_revenue(stockID):
     獲取 MoM / YoY。   
     '''
     try:
+        Log(f"[BasicData] {stockID} 獲取 MoM/YoY 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
         revenueWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/revenue',timeout=3)
         revenueSoup = bs(revenueWeb.text, 'html.parser')
         table = revenueSoup.find('div', class_='table-body-wrapper').find_all('li', class_="List(n)")
@@ -63,6 +65,7 @@ def get_EPS(stockID):
     獲取 EPS。
     '''
     try:
+        Log(f"[BasicData] {stockID} 獲取 EPS 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
         epsWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/eps',timeout=3)
         epsSoup = bs(epsWeb.text, 'html.parser')
         table = epsSoup.find('div', class_='table-body-wrapper').find_all('li', class_="List(n)")
@@ -91,6 +94,7 @@ def get_profile(stockID):
     獲取 營業毛利率、資產報酬率、營業利益率、股東權益報酬率、稅前淨利率。
     '''
     try:
+        Log(f"[BasicData] {stockID} 獲取 Profile 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
         profileWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/profile',timeout=3)
         profileSoup = bs(profileWeb.text, 'html.parser')
 
@@ -132,6 +136,7 @@ def get_dividend(stockID):
     獲取 股票股利、現金股利。
     '''
     try:
+        Log(f"[BasicData] {stockID} 獲取 Dividend 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
         dividendWeb = requests.get(f'https://histock.tw/stock/{stockID}/%E9%99%A4%E6%AC%8A%E9%99%A4%E6%81%AF',timeout=3)
         dividendSoup = bs(dividendWeb.text, 'html.parser')
         divTable = dividendSoup.find('table')
