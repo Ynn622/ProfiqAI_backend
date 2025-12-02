@@ -5,6 +5,7 @@ import yfinance as yf
 
 from util.logger import Log, Color
 from util.nowtime import TaiwanTime
+from util.stock_list import StockList
 from services.chip_data import get_chip_data
 from services.tech_data import get_technical_indicators
 
@@ -128,3 +129,35 @@ def get_live_stock_info(stockID: str) -> dict:
         info['trend'] = 1 if diff > 0 else -1 if diff < 0 else 0
 
     return info
+
+def calculate_cumulative_return(symbol: str, target_month: int, price_mode: bool = False) -> pd.DataFrame:
+    """
+    計算指定股票 在特定月份的累計報酬率。
+    Args:
+        symbol (str): 股票代號或名稱。
+        target_month (int): 目標月份（1-12）。
+        price_mode (bool): 是否回傳價格資料（True）或報酬率（False）。
+    Returns:
+        pd.DataFrame: 包含指定月份價格或累計報酬率的 Data
+    """
+    stock_id, stock_name = StockList.query(symbol)
+    df = yf.Ticker(stock_id).history(period="5y").round(2)
+    df_same_month = df[(df.index.month == target_month) & (df.index.year>TaiwanTime.now().year-5)][['Close']]
+
+    # 取 年份＆月份
+    df_same_month['Year'] = df_same_month.index.year
+    df_same_month['Month'] = df_same_month.index.month
+
+    # 交易日序號
+    df_same_month['TradeDay'] = df_same_month.groupby('Year').cumcount() + 1
+
+    # pivot 成折線圖格式（不會有 NaN → 不會斷線）
+    pivot = df_same_month.pivot(index='TradeDay', columns='Year', values='Close')
+    
+    if price_mode: return pivot.round(4)
+
+    # 與第一天相比的累計報酬率
+    base = pivot.iloc[0]           # 第一行（第 1 天）
+    cumulative = pivot / base - 1  # 計算相對第一天的報酬率
+
+    return cumulative.round(4)
