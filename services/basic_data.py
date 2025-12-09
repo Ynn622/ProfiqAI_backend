@@ -168,6 +168,7 @@ def basic_info(stock_id: str):
     """
     取得指定股票「基本面」資訊。
     """
+    from util.score_utils import split_scores_by_sign
     pe = get_PE_Ratio(stock_id)
     r = get_revenue(stock_id)
     eps = get_EPS(stock_id)
@@ -186,9 +187,9 @@ def basic_info(stock_id: str):
     basic_data["eps_trend"] = eps
     basic_data["dividend"] = dividend
 
-    json_data = {"basicData": basic_data}
-    basic_score(json_data["basicData"])
-    return json_data
+    basic_score(basic_data)
+    basic_data['score_distribution'] = split_scores_by_sign(basic_data)
+    return basic_data
 
 def basic_score(data: dict):
     """

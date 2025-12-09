@@ -14,31 +14,29 @@ def basic_score(stock_id: str):
     """
     取得指定股票「基本面」資訊。
     """
+    from services.ai_generate import ask_AI
+    
     try:
-        from services.ai_generate import ask_AI
-        from util.score_utils import split_scores_by_sign
-        
         cached = DataManager.get_score(stock_id, score_type="basic")
         if cached:
-            return JSONResponse(content=cached["data"])
+            return JSONResponse(content={"data": cached["data"]})
 
         _, stock_name = StockList.query(stock_id)
         data = basic_info(stock_id)
-        score_payload = data["basicData"].copy()
-        data["basicData"]['score_distribution'] = split_scores_by_sign(data['basicData'])
-        score_payload['score_distribution'] = data["basicData"]['score_distribution']
+        
+        payload_data = data.copy()
         # 移除不必要的欄位以簡化輸入給 AI
         for key in ['TotalScore']:
-            data['basicData'].pop(key, None)
-        prompt = f"""以下是{stock_name}的基本面資料,請用繁體中文生成100字內快速摘要,去解釋評級:{data['basicData']}"""
-        data['basicData']['ai_insight'] = ask_AI(prompt)
-        score_payload['ai_insight'] = data['basicData']['ai_insight']
+            data.pop(key, None)
+        prompt = f"""以下是{stock_name}的基本面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data}"""
+        data['ai_insight'] = ask_AI(prompt)
+        payload_data['ai_insight'] = data['ai_insight']
         DataManager.save_score(
             stock_id=stock_id,
-            data={**data, "basicData": score_payload},
+            data=payload_data,
             score_type="basic",
-            direction=score_payload.get("direction"),
+            direction=payload_data.get("direction"),
         )
-        return JSONResponse(content=data)
+        return JSONResponse(content={"data": payload_data})
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

@@ -17,16 +17,16 @@ def tech_score(stock_id: str):
     from services.ai_generate import ask_AI
     from util.score_utils import split_scores_by_sign
 
-    cached = DataManager.get_score(
-        stock_id=stock_id,
-        score_type="tech",
-    )
-    if cached:
-        return JSONResponse(content=cached["data"])
+    try:
+        cached = DataManager.get_score(
+            stock_id=stock_id,
+            score_type="tech",
+        )
+        if cached:
+            return JSONResponse(content={"data": cached["data"]})
 
-    summary, history_tech_df = calculate_technical_indicators(stock_id)
-    
-    if summary:
+        summary, history_tech_df = calculate_technical_indicators(stock_id)
+        
         summary_dict = summary.copy()
         _, stock_name = StockList.query(stock_id)
         # 移除不必要的欄位以簡化輸入給 AI
@@ -38,10 +38,10 @@ def tech_score(stock_id: str):
         summary["ai_insight"] = ask_AI(prompt)
         DataManager.save_score(
             stock_id=stock_id,
-            data={"technical_data": summary},
+            data=summary,
             score_type="tech",
             direction=summary.get("direction"),
         )
-        return JSONResponse(content={"technical_data": summary})
-    else:
-        return JSONResponse(content={"message": "無法取得技術面資訊"}, status_code=404)
+        return JSONResponse(content={"data": summary})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

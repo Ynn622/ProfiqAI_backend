@@ -47,26 +47,26 @@ def chip_score(stock_id: str):
     from services.chip_data import calculate_chip_indicators
     from services.ai_generate import ask_AI
     
-    cached = DataManager.get_score(stock_id, score_type="chip")
-    if cached:
-        return JSONResponse(content=cached["data"])
+    try:
+        cached = DataManager.get_score(stock_id, score_type="chip")
+        if cached:
+            return JSONResponse(content={"data": cached["data"]})
 
-    _, stock_name = StockList.query(stock_id)
-    data = calculate_chip_indicators(stock_id)
-    score_payload = data.copy()
-    # 移除不必要的欄位以簡化輸入給 AI
-    for key in ['TotalScore', 'accurate', 'Close', 'close_result', 'foreign', 'dealer', 'investor']:
-        data.pop(key, None)
-    prompt = f"""以下是{stock_name}的籌碼面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data}"""
-    data['ai_insight'] = ask_AI(prompt)
-    score_payload['ai_insight'] = data['ai_insight']
-    DataManager.save_score(
-        stock_id=stock_id,
-        data={"chip_data": score_payload},
-        score_type="chip",
-        direction=score_payload.get("direction"),
-    )
-    if data:
-        return JSONResponse(content={"chip_data": score_payload})
-    else:
-        return JSONResponse(content={"message": "無法取得籌碼面資訊"}, status_code=404)
+        _, stock_name = StockList.query(stock_id)
+        data = calculate_chip_indicators(stock_id)
+        payload_data = data.copy()
+        # 移除不必要的欄位以簡化輸入給 AI
+        for key in ['TotalScore', 'accurate', 'Close', 'close_result', 'foreign', 'dealer', 'investor']:
+            data.pop(key, None)
+        prompt = f"""以下是{stock_name}的籌碼面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data}"""
+        data['ai_insight'] = ask_AI(prompt)
+        payload_data['ai_insight'] = data['ai_insight']
+        DataManager.save_score(
+            stock_id=stock_id,
+            data=payload_data,
+            score_type="chip",
+            direction=payload_data.get("direction"),
+        )
+        return JSONResponse(content={"data": payload_data})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
