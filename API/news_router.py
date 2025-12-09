@@ -48,7 +48,7 @@ def news_score(stock_id: str):
             ai_insight = ask_AI(prompt)
             sentiment_scores["ai_insight"] = ai_insight
 
-        DataManager.save_score(
+        DataManager.save_stock_score(
             stock_id=stock_id,
             data=sentiment_scores,
             score_type="news",

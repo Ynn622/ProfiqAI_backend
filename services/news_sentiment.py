@@ -62,12 +62,7 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
 
         cached = None
         if url:
-            cached = DataManager.get_score(
-                stock_id=None,
-                score_type="news",
-                table_name=DataManager.NEWS_TABLE,
-                key_fields={"url": url},
-            )
+            cached = DataManager.get_news_score(url=url)
         if cached:
             cached_data = cached.get("data", cached)
             cached_score = [
@@ -91,20 +86,12 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
             contents.append(text)
 
             if url:
-                DataManager.save_score(
-                    stock_id=None,
-                    data={
-                        "positive": score_list[0],
-                        "neutral": score_list[1],
-                        "negative": score_list[2],
-                        "content": text,
-                    },
-                    score_type="news",
-                    table_name=DataManager.NEWS_TABLE,
-                    key_fields={"url": url},
-                    conflict_keys=("url",),
-                    flatten_data=True,
-                    include_data=False,
+                DataManager.save_news_score(
+                    url=url,
+                    positive=score_list[0],
+                    neutral=score_list[1],
+                    negative=score_list[2],
+                    content=text,
                 )
         except Exception as e:
             Log(f"[情感分析] Error At {i}: {e}", color=Color.RED)

@@ -17,7 +17,7 @@ def basic_score(stock_id: str):
     from services.ai_generate import ask_AI
     
     try:
-        cached = DataManager.get_score(stock_id, score_type="basic")
+        cached = DataManager.get_stock_score(stock_id, score_type="basic")
         if cached:
             return JSONResponse(content={"data": cached["data"]})
 
@@ -31,7 +31,7 @@ def basic_score(stock_id: str):
         prompt = f"""以下是{stock_name}的基本面資料，請用繁體中文生成100字內快速摘要，去解釋評級:{data}"""
         data['ai_insight'] = ask_AI(prompt)
         payload_data['ai_insight'] = data['ai_insight']
-        DataManager.save_score(
+        DataManager.save_stock_score(
             stock_id=stock_id,
             data=payload_data,
             score_type="basic",
