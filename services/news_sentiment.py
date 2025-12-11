@@ -59,6 +59,8 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
     for i in range(len(news_summary_df)):
         url = news_summary_df['Url'].iloc[i]
         source = news_summary_df['Source'].iloc[i]
+        title = news_summary_df['Title'].iloc[i]
+        timestamp = news_summary_df['TimeStamp'].iloc[i]
 
         cached = None
         if url:
@@ -92,6 +94,8 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
                     neutral=score_list[1],
                     negative=score_list[2],
                     content=text,
+                    title=title,
+                    publish_time=timestamp,
                 )
         except Exception as e:
             Log(f"[情感分析] Error At {i}: {e}", color=Color.RED)

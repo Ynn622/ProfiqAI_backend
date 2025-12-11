@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any, Dict, Optional
 
 from util.logger import Log, Color
@@ -166,6 +166,8 @@ class DataManager:
         neutral: float,
         negative: float,
         content: str,
+        title: Optional[str] = None,
+        publish_time: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         儲存新聞情感分數到 newsScores 表。
@@ -176,6 +178,8 @@ class DataManager:
             neutral: 中立分數
             negative: 負面分數
             content: 新聞內容
+            title: 新聞標題
+            publish_time: 發布時間戳記
         """
         key_fields = {"url": url}
         conflict_keys = ("url",)
@@ -187,6 +191,10 @@ class DataManager:
             "negative": negative,
             "content": content,
         }
+        if title is not None:
+            payload["title"] = title
+        if publish_time is not None:
+            payload["publishTime"] = datetime.fromtimestamp(publish_time, tz=TaiwanTime.TIMEZONE).isoformat()
 
         cls._cache_set(cls.NEWS_TABLE, key_fields, payload)
 

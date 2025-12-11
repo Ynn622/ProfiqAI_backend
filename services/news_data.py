@@ -2,13 +2,13 @@ import requests
 import pandas as pd
 import re
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 import jieba
 from collections import Counter
 from bs4 import BeautifulSoup as bs
 import html
 import time
 
+from util.nowtime import TaiwanTime
 from util.logger import Log, Color
 from util.stock_list import StockList
 
@@ -39,10 +39,25 @@ def FetchStockNews(stock_name: str, num: int = 10, include_url: bool=False) -> p
     udn_df = udn_df[udn_df['TimeStamp'] >= two_months_ago]
     urls = udn_df['Url'].tolist()[:num]
 
+    # 先批次取得所有 URL 的快取資料
+    from util.data_manager import DataManager
+    cached_news = {}
+    for url in urls:
+        cached = DataManager.get_news_score(url=url)
+        if cached and cached.get("content"):
+            cached_news[url] = cached.get("content")
+
     news_content = []
     for i, url in enumerate(urls):
         Log(f"[新聞爬取] 進度 - {i+1}/{len(urls)} ", end="\r", reload_only=True)  # debug 時 顯示進度
-        article = parse_article(url, source='udn')  # 爬取完整新聞內容
+        
+        # 檢查是否有快取
+        if url in cached_news:
+            article = cached_news[url]
+        else:
+            # 沒有快取才去爬取
+            article = parse_article(url, source='udn')
+        
         news_content.append(article)
     Log(f"[新聞爬取] 抓取完成！{' '*20}", end="\r", color=Color.GREEN, reload_only=True)
     udn_df['Content'] = news_content
@@ -109,7 +124,7 @@ def get_udn_news_summary(keyword, page=1) -> pd.DataFrame:
         title = item['title']
         summary = item['paragraph']
         time_str = item['time']['dateTime']
-        timestamp = int(datetime.strptime(time_str, "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Taipei")).timestamp())   # 轉成時間戳（單位：秒）
+        timestamp = int(datetime.strptime(time_str, "%Y-%m-%d %H:%M").replace(tzinfo=TaiwanTime.TIMEZONE).timestamp())   # 轉成時間戳（單位：秒）
         data.append([timestamp, title, summary, url, 'udn'])
     return pd.DataFrame(data, columns=col)
 
