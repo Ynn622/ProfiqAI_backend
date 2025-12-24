@@ -1,5 +1,7 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from typing import Any, Dict, Optional
+
+from services.stock_data import getStockPrice
 
 from util.logger import Log, Color
 from util.nowtime import TaiwanTime
@@ -26,6 +28,8 @@ class DataManager:
     TECH_UPDATE_HOUR = 14
     _local_cache: Dict[str, Dict[str, Any]] = {}
     # 結構: {table: {cache_key: payload}}
+    _last_trading_day_cache: Optional[date] = None
+    _trading_day_cache_date: Optional[date] = None
 
     @staticmethod
     def _normalize_stock_id(stock_id: Optional[str]) -> str:
@@ -35,10 +39,61 @@ class DataManager:
         return stock_id.split(".")[0]
 
     @classmethod
+    def _get_last_trading_day(cls, target_date: date) -> date:
+        """
+        取得最近的交易日，透過查詢 ^TWII (台灣加權指數) 取得實際交易日。
+        每天第一次查詢會透過 getStockPrice 取得，之後使用快取。
+        
+        Args:
+            target_date: 目標日期
+            
+        Returns:
+            最近的交易日日期
+        """
+        today = TaiwanTime.now().date()
+        
+        # 如果快取是今天的且目標日期在今天或之後，直接返回快取
+        if (cls._trading_day_cache_date == today and 
+            cls._last_trading_day_cache is not None and 
+            target_date >= today):
+            return cls._last_trading_day_cache
+        
+        try:
+            # 查詢近 30 天的交易資料
+            start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
+            hist = getStockPrice(symbol="^TWII", start=start_date, chip_enable=False)
+            
+            if hist is not None and not hist.empty:
+                # 過濾 <= target_date 的交易日 (index 已是字串 YYYY-MM-DD)
+                target_str = target_date.strftime("%Y-%m-%d")
+                valid_hist = hist[hist.index <= target_str]
+                
+                if not valid_hist.empty:
+                    last_trading_day_str = valid_hist.index[-1]
+                    last_trading_day = datetime.strptime(last_trading_day_str, "%Y-%m-%d").date()
+                    
+                    # 如果查詢的是今天,更新快取
+                    if target_date >= today:
+                        cls._last_trading_day_cache = last_trading_day
+                        cls._trading_day_cache_date = today
+                    
+                    Log(f"[DataManager] 取得最近交易日: {last_trading_day}", color=Color.GREEN, reload_only=True)
+                    return last_trading_day
+            
+            Log(f"[DataManager] getStockPrice 查無交易日，使用 fallback 週末過濾", color=Color.YELLOW)
+        except Exception as exc:
+            Log(f"[DataManager] getStockPrice 查詢失敗: {exc}，使用 fallback", color=Color.YELLOW)
+        
+        # Fallback: 簡單排除週末
+        while target_date.weekday() >= 5:  # 5=週六, 6=週日
+            target_date -= timedelta(days=1)
+        return target_date
+
+    @classmethod
     def _resolve_score_date(cls, score_type: str, score_date: Optional[str] = None) -> str:
         """
         決定該筆資料的紀錄日期。
-        若在更新時點前呼叫，會自動回填到前一日，避免日期與實際更新時間不一致。
+        若在更新時點前呼叫，會自動回填到前一交易日，避免日期與實際更新時間不一致。
         """
         if score_date:
             return score_date
@@ -53,6 +108,10 @@ class DataManager:
         record_date = now.date()
         if now.hour < cutoff:
             record_date -= timedelta(days=1)
+        
+        # 確保是交易日
+        record_date = cls._get_last_trading_day(record_date)
+        
         return record_date.strftime("%Y-%m-%d")
 
     @classmethod
