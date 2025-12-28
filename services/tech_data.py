@@ -146,7 +146,7 @@ def calculate_technical_indicators(stock_id: str):
         "空頭排列 & 快線向上": ( (df["EMA_5"] <= df["EMA_10"]) & (df["EMA_5"] > df["EMA_5"].shift(1)) ),
     }
     # 套用 EMA 狀態欄位
-    df["EMA_Status"] = np.select( list(ema_rules.values()), list(ema_rules.keys()), default="整理中" )
+    df["EMA_Status"] = np.select( list(ema_rules.values()), list(ema_rules.keys()), default="盤整中" )
 
 
     # MACD 狀態描述字典
@@ -159,7 +159,7 @@ def calculate_technical_indicators(stock_id: str):
         "快線<慢線 & 柱狀圖減弱": ( (df["MACD"] <= df["Signal Line"]) & (df["Histogram"] > df["Histogram"].shift(1)) ),
     }
     # 套用 MACD 狀態欄位
-    df["MACD_Status"] = np.select( list(macd_rules.values()), list(macd_rules.keys()), default="整理中" )
+    df["MACD_Status"] = np.select( list(macd_rules.values()), list(macd_rules.keys()), default="盤整中" )
 
 
     # KD 狀態描述
@@ -174,7 +174,7 @@ def calculate_technical_indicators(stock_id: str):
         "K<D & K向下": ( (df["%K"] <= df["%D"]) & (df["%K"] <= df["%K"].shift(1)) ),
     }
     # 新增 KD 狀態欄位
-    df["KD_Status"] = np.select( list(kd_rules.values()), list(kd_rules.keys()), default="整理中" )
+    df["KD_Status"] = np.select( list(kd_rules.values()), list(kd_rules.keys()), default="盤整中" )
 
 
     # RSI 狀態描述
@@ -187,7 +187,7 @@ def calculate_technical_indicators(stock_id: str):
         "中性區間走低":  ( df["RSI"] < df["RSI"].shift(1) ),
     }
     # 套用 RSI 狀態欄位
-    df["RSI_Status"] = np.select( list(rsi_rules.values()), list(rsi_rules.keys()), default="整理中" )
+    df["RSI_Status"] = np.select( list(rsi_rules.values()), list(rsi_rules.keys()), default="盤整中" )
 
 
     # ROC 狀態描述
