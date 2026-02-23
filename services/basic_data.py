@@ -3,13 +3,15 @@ import requests
 import pandas as pd
 from util.logger import Log, Color
 
+header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"}
+
 def get_PE_Ratio(stockID):
     '''
     獲取 PE Ratio / PE Ratio產業平均。
     '''
     try:
         Log(f"[BasicData] {stockID} 獲取 PE Ratio 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
-        quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}',timeout=3)
+        quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}', headers=header, timeout=3)
         quoteSoup = bs(quoteWeb.text, 'html.parser')
         PE_ratio_table = quoteSoup.find_all('span',class_='Fz(16px) C($c-link-text) Mb(4px)')[1].text
         PE_ratio_table = PE_ratio_table.strip(")").split(" (")
@@ -32,7 +34,7 @@ def get_revenue(stockID):
     '''
     try:
         Log(f"[BasicData] {stockID} 獲取 MoM/YoY 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
-        revenueWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/revenue',timeout=3)
+        revenueWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/revenue', headers=header, timeout=3)
         revenueSoup = bs(revenueWeb.text, 'html.parser')
         table = revenueSoup.find('div', class_='table-body-wrapper').find_all('li', class_="List(n)")
 
@@ -66,7 +68,7 @@ def get_EPS(stockID):
     '''
     try:
         Log(f"[BasicData] {stockID} 獲取 EPS 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
-        epsWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/eps',timeout=3)
+        epsWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/eps', headers=header, timeout=3)
         epsSoup = bs(epsWeb.text, 'html.parser')
         table = epsSoup.find('div', class_='table-body-wrapper').find_all('li', class_="List(n)")
 
@@ -95,7 +97,7 @@ def get_profile(stockID):
     '''
     try:
         Log(f"[BasicData] {stockID} 獲取 Profile 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
-        profileWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/profile',timeout=3)
+        profileWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}/profile', headers=header, timeout=3)
         profileSoup = bs(profileWeb.text, 'html.parser')
 
         financeInfo = profileSoup.find_all('section', class_='Mb($m-module)')[2].find_all('div', recursive=False)
@@ -137,7 +139,7 @@ def get_dividend(stockID):
     '''
     try:
         Log(f"[BasicData] {stockID} 獲取 Dividend 資料{' '*10}", color=Color.GREEN, end="\r", reload_only=True)
-        dividendWeb = requests.get(f'https://histock.tw/stock/{stockID}/%E9%99%A4%E6%AC%8A%E9%99%A4%E6%81%AF',timeout=3)
+        dividendWeb = requests.get(f'https://histock.tw/stock/{stockID}/%E9%99%A4%E6%AC%8A%E9%99%A4%E6%81%AF', headers=header, timeout=3)
         dividendSoup = bs(dividendWeb.text, 'html.parser')
         divTable = dividendSoup.find('table')
         trs = divTable.find_all('tr')

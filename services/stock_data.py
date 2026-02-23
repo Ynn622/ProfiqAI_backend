@@ -92,7 +92,8 @@ def get_live_stock_info(stockID: str) -> dict:
     """
     用於取得最新即時股價資料與相關資訊。
     """
-    quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}')
+    header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"}
+    quoteWeb = requests.get(f'https://tw.stock.yahoo.com/quote/{stockID}', headers=header)
     soup = bs(quoteWeb.text, "html.parser")
 
     info = {}
