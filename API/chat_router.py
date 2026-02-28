@@ -5,6 +5,7 @@ import asyncio
 
 from services.function_tools import ask_AI_Agent
 from util.logger import log_print
+from util.api_decorator import add_runtime
 
 router = APIRouter(prefix="/chat", tags=["AI 聊天 (Chat)"])
 
@@ -15,6 +16,7 @@ class ChatRequest(BaseModel):
 
 @router.post("/chatBot")
 @log_print
+@add_runtime
 def ask(req: ChatRequest):
     chat_response = asyncio.run(ask_AI_Agent(req.question, model=req.model.lower(), session_id=req.uuid))
     return JSONResponse(content={'response': chat_response})

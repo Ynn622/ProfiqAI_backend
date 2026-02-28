@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from util.logger import log_print
+from util.api_decorator import add_runtime
 from util.nowtime import TaiwanTime
 from util.data_manager import DataManager
 from util.stock_list import StockList
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/news", tags=["新聞資料 News"])
 
 @router.get("/wordCloud")
 @log_print
+@add_runtime
 def news_word_cloud(stock_id: str):
     """
     取得指定股票「新聞」資料的詞雲。
@@ -21,6 +23,7 @@ def news_word_cloud(stock_id: str):
 
 @router.get("/summary")
 @log_print
+@add_runtime
 def get_all_news_summary(stock_id: str, page: int = 1):
     """
     取得指定股票「新聞」資料的摘要。
@@ -31,6 +34,7 @@ def get_all_news_summary(stock_id: str, page: int = 1):
 
 @router.get("/score")
 @log_print
+@add_runtime
 def news_score(stock_id: str):
     """
     取得指定股票「新聞」資料的情感分數。

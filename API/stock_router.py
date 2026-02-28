@@ -3,12 +3,14 @@ from fastapi.responses import JSONResponse
 
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
+from util.api_decorator import add_runtime
 from util.stock_list import StockList
 
 router = APIRouter(prefix="/stock", tags=["股價資料 Stock"])
 
 @router.get("/stockData")
 @log_print
+@add_runtime
 def stock_data(stock_id: str, start_date: str = "2024-05-10"):
     """
     取得指定股票 股價資料表。
@@ -33,6 +35,7 @@ def stock_data(stock_id: str, start_date: str = "2024-05-10"):
 
 @router.get("/liveStockInfo")
 @log_print
+@add_runtime
 def stock_info(stock_id: str):
     """
     取得指定股票 即時股價OHLC＆漲跌幅。
@@ -46,6 +49,7 @@ def stock_info(stock_id: str):
 
 @router.get("/monthlyCumulativeReturn")
 @log_print
+@add_runtime
 def monthly_cumulative_return(stock_id: str, target_month: int, price_mode: bool = False):
     """
     計算指定股票 在特定月份的累計報酬率。
@@ -66,6 +70,7 @@ def monthly_cumulative_return(stock_id: str, target_month: int, price_mode: bool
 
 @router.get("/queryStock")
 @log_print
+@add_runtime
 def query_stock(stock_id: str):
     """
     查詢指定股票(模糊查詢)。
@@ -78,6 +83,7 @@ def query_stock(stock_id: str):
 
 @router.get("/refreshStockList")
 @log_print
+@add_runtime
 def refresh_stock_list():
     """
     重新下載並快取股票清單。

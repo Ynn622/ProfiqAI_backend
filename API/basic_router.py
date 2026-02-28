@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from util.logger import log_print
+from util.api_decorator import add_runtime
 from util.data_manager import DataManager
 from util.stock_list import StockList
 from services.basic_data import basic_info
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/basic", tags=["基本面 Basic"])
 
 @router.get("/score")
 @log_print
+@add_runtime
 def basic_score(stock_id: str):
     """
     取得指定股票「基本面」資訊。

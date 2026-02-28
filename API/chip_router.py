@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from util.numpy_extension import nan_to_none
 from util.logger import log_print
+from util.api_decorator import add_runtime
 from util.data_manager import DataManager
 from util.stock_list import StockList
 from services.chip_data import get_margin_data, get_chip_data, main_force_all_days
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/chip", tags=["籌碼面 Chip"])
 
 @router.get("/chipInfo")
 @log_print
+@add_runtime
 def chip_info(stock_id: str):
     """
     取得指定股票60天內「籌碼面」資料。 （三大法人、融資、融券）
@@ -40,6 +42,7 @@ def chip_info(stock_id: str):
 
 @router.get("/score")
 @log_print
+@add_runtime
 def chip_score(stock_id: str):
     """
     取得股票「籌碼面」指標資訊
