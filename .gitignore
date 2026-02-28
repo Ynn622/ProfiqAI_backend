@@ -2,6 +2,7 @@
 __pycache__/
 test*.py
 .env
+.vscode/
 NotoSansCJKtc-Regular.otf
 lstm_stock_model.pth
 data/conversations.db*
