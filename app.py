@@ -69,13 +69,8 @@ app.add_middleware(
 )
 
 # 引入路由
-app.include_router(stock_router.router)
-app.include_router(basic_router.router)
-app.include_router(chip_router.router)
-app.include_router(news_router.router)
-app.include_router(tech_router.router)
-app.include_router(predict_router.router)
-app.include_router(chat_router.router)
+for router_module in [stock_router, basic_router, chip_router, news_router, tech_router, predict_router, chat_router]:
+    app.include_router(router_module.router)
 
 @app.get("/")
 def root():
