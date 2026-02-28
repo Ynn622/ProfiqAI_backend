@@ -7,6 +7,7 @@ from collections import Counter
 from bs4 import BeautifulSoup as bs
 import html
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from util.nowtime import TaiwanTime
 from util.logger import Log, Color
@@ -47,18 +48,28 @@ def FetchStockNews(stock_name: str, num: int = 10, include_url: bool=False) -> p
         if cached and cached.get("content"):
             cached_news[url] = cached.get("content")
 
+    # 分離需要爬取的 URL
+    urls_to_fetch = [url for url in urls if url not in cached_news]
+    
+    # 並行爬取新聞內容
+    fetch_results = {}
+    if urls_to_fetch:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_url = {executor.submit(parse_article, url, 'udn'): url for url in urls_to_fetch}
+            for future in as_completed(future_to_url):
+                url = future_to_url[future]
+                fetch_results[url] = future.result()
+    
+    # 按順序組裝結果
     news_content = []
-    for i, url in enumerate(urls):
-        Log(f"[新聞爬取] 進度 - {i+1}/{len(urls)} ", end="\r", reload_only=True)  # debug 時 顯示進度
-        
-        # 檢查是否有快取
+    for url in urls:
         if url in cached_news:
-            article = cached_news[url]
+            news_content.append(cached_news[url])
+        elif url in fetch_results:
+            news_content.append(fetch_results[url])
         else:
-            # 沒有快取才去爬取
-            article = parse_article(url, source='udn')
-        
-        news_content.append(article)
+            news_content.append("")
+    
     Log(f"[新聞爬取] 抓取完成！{' '*20}", end="\r", color=Color.GREEN, reload_only=True)
     udn_df['Content'] = news_content
     udn_df['Date'] = udn_df['TimeStamp'].apply(lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M"))  # 轉換 時間戳->日期
@@ -162,6 +173,7 @@ def parse_article(url: str, source: str='udn') -> str:
     """
     
     try:
+        Log(f"[新聞爬取] 處理中：{url[8:39]}", end="\r", reload_only=True)
         if source == 'udn':
             news = requests.get(url).text
             news_find = bs(news,'html.parser').find("section",class_="article-content__editor").find_all("p")[:-1]

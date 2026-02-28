@@ -77,7 +77,7 @@ class DataManager:
                         cls._last_trading_day_cache = last_trading_day
                         cls._trading_day_cache_date = today
                     
-                    Log(f"[DataManager] 取得最近交易日: {last_trading_day}", color=Color.GREEN, reload_only=True)
+                    Log(f"[DataManager] 取得最近交易日: {last_trading_day}", end='\r', color=Color.GREEN, reload_only=True)
                     return last_trading_day
             
             Log(f"[DataManager] getStockPrice 查無交易日，使用 fallback 週末過濾", color=Color.YELLOW)

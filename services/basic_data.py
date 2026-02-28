@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup as bs
 import requests
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
 from util.logger import Log, Color
 
 header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"}
@@ -171,11 +172,23 @@ def basic_info(stock_id: str):
     取得指定股票「基本面」資訊。
     """
     from util.score_utils import split_scores_by_sign
-    pe = get_PE_Ratio(stock_id)
-    r = get_revenue(stock_id)
-    eps = get_EPS(stock_id)
-    pro = get_profile(stock_id)
-    dividend = get_dividend(stock_id)
+    
+    # 定義要並行執行的任務
+    tasks = [
+        ('pe', get_PE_Ratio),
+        ('r', get_revenue),
+        ('eps', get_EPS),
+        ('pro', get_profile),
+        ('dividend', get_dividend)
+    ]
+    
+    # 使用線程池並行獲取資料
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {name: executor.submit(func, stock_id) for name, func in tasks}
+        results = {name: future.result() for name, future in futures.items()}
+    
+    # 解包結果
+    pe, r, eps, pro, dividend = results['pe'], results['r'], results['eps'], results['pro'], results['dividend']
 
     basic_data = {**pe, **pro}
 

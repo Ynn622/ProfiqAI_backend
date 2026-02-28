@@ -2,6 +2,7 @@ import pandas as pd
 from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 import gc
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from util.logger import Log, Color
 from util.data_manager import DataManager
@@ -54,14 +55,14 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
     """
     news_summary_df = get_udn_news_summary(stock_id, page=page).iloc[:10]
     
-    scores = []
-    contents = []
-    for i in range(len(news_summary_df)):
-        url = news_summary_df['Url'].iloc[i]
-        source = news_summary_df['Source'].iloc[i]
-        title = news_summary_df['Title'].iloc[i]
-        timestamp = news_summary_df['TimeStamp'].iloc[i]
+    def process_single_news(idx):
+        """處理單一新聞的情感分析"""
+        url = news_summary_df['Url'].iloc[idx]
+        source = news_summary_df['Source'].iloc[idx]
+        title = news_summary_df['Title'].iloc[idx]
+        timestamp = news_summary_df['TimeStamp'].iloc[idx]
 
+        # 檢查緩存
         cached = None
         if url:
             cached = DataManager.get_news_score(url=url)
@@ -74,19 +75,16 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
             ]
             cached_content = cached_data.get("content")
             if cached_content and all(v is not None for v in cached_score):
-                scores.append(cached_score)
-                contents.append(cached_content)
-                continue
+                return idx, cached_score, cached_content
 
-        Log(f"[情感分析] 新聞處理中：{i+1}/{len(news_summary_df)}   ", end="\r", reload_only=True)
+        # 解析文章並預測情感
+        Log(f"[情感分析] 新聞處理中：{idx+1}/{len(news_summary_df)}   ", end="\r", reload_only=True)
         text = parse_article(url, source=source)
 
         try:
             score = predict_sentiment(text)
-            score_list = score.cpu().tolist()  # 從GPU搬回CPU，避免堆積
-            scores.append(score_list)
-            contents.append(text)
-
+            score_list = score.cpu().tolist()   # 轉回 CPU 並轉成 list
+            # 保存到數據庫
             if url:
                 DataManager.save_news_score(
                     url=url,
@@ -97,17 +95,35 @@ def cal_news_sentiment(stock_id: str, page: int=1) -> pd.DataFrame:
                     title=title,
                     publish_time=timestamp,
                 )
+            torch.cuda.empty_cache()
+            gc.collect()
+            return idx, score_list, text
+            
         except Exception as e:
-            Log(f"[情感分析] Error At {i}: {e}", color=Color.RED)
-            scores.append([None, None, None])
-            contents.append(None)
-        torch.cuda.empty_cache()  # 清理記憶體
-        gc.collect()
+            Log(f"[情感分析] Error At {idx}: {e}", color=Color.RED)
+            return idx, [None, None, None], None
+    
+    # 並行處理所有新聞
+    results = {}
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(process_single_news, i): i for i in range(len(news_summary_df))}
+        for future in as_completed(futures):
+            idx, score, content = future.result()
+            results[idx] = (score, content)
+    
+    # 按順序組裝結果
+    scores = []
+    contents = []
+    for i in range(len(news_summary_df)):
+        score, content = results.get(i, ([None, None, None], None))
+        scores.append(score)
+        contents.append(content)
+    
     score_df = pd.DataFrame(scores, columns=['positive', 'neutral', 'negative'])
     score_df["content"] = contents
     score_df.index = news_summary_df.index
     score_df.index.name = "日期"
-    Log(f"[情感分析] 新聞處理完成！{' '*20}", end="\r", color=Color.GREEN, reload_only=True)
+    Log(f"[情感分析] 新聞處理完成！{' '*40}", end="\r", color=Color.GREEN, reload_only=True)
     data = pd.concat([news_summary_df, score_df], axis=1)[['Url', 'content', 'positive', 'neutral', 'negative']]
     return data
 

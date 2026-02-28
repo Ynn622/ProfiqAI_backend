@@ -3,6 +3,7 @@ import cloudscraper
 import numpy as np
 from datetime import date, timedelta, datetime
 from bs4 import BeautifulSoup as bs
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from util.logger import Log, Color
 from util.nowtime import TaiwanTime
@@ -109,26 +110,42 @@ def main_force_all_days(stock_id, date_list):
         sql_df = pd.DataFrame(sql_response.data).set_index("date")
         sql_df.index = pd.to_datetime(sql_df.index)
 
-    for date in date_list:
-        Log(f"[主力] 資料截取中：{date}", end="\r", reload_only=True)
-        # 檢查 Supabase 是否已有資料
-        if (sql_df is not None) and (date in sql_df.index):
-            main_force_list.append(sql_df.loc[date, "mainForce"])
-            continue
+    # 分離需要網絡請求的日期
+    dates_to_fetch = [date for date in date_list if (sql_df is None) or (date not in sql_df.index)]
+    
+    # 並行獲取「主力資料」
+    fetch_results = {}
+    if dates_to_fetch:
+        def fetch_one_date(date_str):
+            Log(f"[主力] 資料截取中：{date_str}", end="\r", reload_only=True)
+            result = main_force_one_day(stock_id, date_str)
+            return date_str, result
         
-        result = None
-        while result is None:
-          result = main_force_one_day(stock_id, date)
-        main_force_list.append(result[0]-result[1])
-        if result == (np.nan, np.nan):
-            Log(f"[主力] {date} 無主力資料，跳過！{' '*20}", color=Color.YELLOW, reload_only=True)
-            continue  # 如果沒有資料，不存入資料庫
-        sql_preupload.append({
-            "stock_id": stock_id,
-            "date": str(date),
-            "mainForce": result[0] - result[1]
-        })
-
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(fetch_one_date, date): date for date in dates_to_fetch}
+            for future in as_completed(futures):
+                date_str, result = future.result()
+                fetch_results[date_str] = result
+    
+    # 按順序組裝結果
+    for date in date_list:
+        if (sql_df is not None) and (date in sql_df.index):  # Supabase 是否已有資料
+            main_force_list.append(sql_df.loc[date, "mainForce"])
+        elif date in fetch_results:     # 是否有新爬取的資料
+            result = fetch_results[date]
+            if result is None:
+                Log(f"[主力] {date} 無主力資料，跳過！{' '*20}", color=Color.YELLOW, reload_only=True)
+                main_force_list.append(0)  # 預設值
+            else:
+                main_force_list.append(result[0] - result[1])
+                sql_preupload.append({
+                    "stock_id": stock_id,
+                    "date": str(date),
+                    "mainForce": result[0] - result[1]
+                })
+        else:
+            main_force_list.append(0)  # 預設值
+        
     # 儲存到 Supabase
     if len(sql_preupload):
         Log(f"[主力] 儲存主力資料中...{' '*20}", end="\r", reload_only=True)
@@ -140,26 +157,36 @@ def main_force_all_days(stock_id, date_list):
 
     main_force_df = pd.DataFrame(main_force_list, columns=["主力買賣超"], index=date_list)
     
-    Log(f"[主力] 資料載入完畢！{' '*20}", color=Color.GREEN, reload_only=True)
+    Log(f"[主力] 資料載入完畢！{' '*70}", color=Color.GREEN, reload_only=True)
     return main_force_df
 
-def main_force_one_day(stock_id, date):
+def main_force_one_day(stock_id, date, max_retries=3):
     """
     main_force_all_days() 調用的輔助函數：爬取單日主力買賣超資料
+    Args:
+        stock_id(str): 股票代號
+        date(str): 日期
+        max_retries(int): 最大重試次數
+    Returns:
+        tuple: (買超數值, 賣超數值) 或 None（表示失敗 or 無資料）
     """
-    try:
-        url = f'https://fubon-ebrokerdj.fbs.com.tw/z/zc/zco/zco.djhtm?a={stock_id}&e={date}&f={date}'
-        web = scraper.get(url).text
-        web_bs = bs(web, 'html.parser')
-        web_find = web_bs.find("tr", id="oScrollFoot")
-        if web_find is None: return np.nan, np.nan  # 如果沒有資料，返回 NaN
-        buysell = web_find.find_all("td", class_="t3n1")    # 買賣超 欄位
-        buy_value = int(buysell[0].text.replace(",", ""))   # 買超
-        sell_value = int(buysell[1].text.replace(",", ""))  # 賣超
-        return buy_value, sell_value
-    except Exception as e:
-        Log(f" \n[主力] {date} 發生錯誤：{e}", color=Color.RED)
-        return None
+    for attempt in range(max_retries):
+        try:
+            url = f'https://fubon-ebrokerdj.fbs.com.tw/z/zc/zco/zco.djhtm?a={stock_id}&e={date}&f={date}'
+            web = scraper.get(url).text
+            web_bs = bs(web, 'html.parser')
+            web_find = web_bs.find("tr", id="oScrollFoot")
+            if web_find is None: return None   # 沒有資料(可能是當日資料尚未更新)，直接返回 None
+            buysell = web_find.find_all("td", class_="t3n1")    # 買賣超 欄位
+            buy_value = int(buysell[0].text.replace(",", ""))   # 買超
+            sell_value = int(buysell[1].text.replace(",", ""))  # 賣超
+            return buy_value, sell_value
+        except Exception as e:
+            if attempt < max_retries - 1:
+                Log(f"[主力] {date} 發生錯誤（重試 {attempt + 1}/{max_retries}）：{e}", color=Color.YELLOW, reload_only=True)
+            else:
+                Log(f"[主力] {date} 重試 {max_retries} 次後失敗：{e}", color=Color.RED)
+    return None    # 最終失敗 也返回 None
 
 #定義計算連續買賣超狀態
 def calculate_consecutive_status(column):
