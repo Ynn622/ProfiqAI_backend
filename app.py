@@ -5,6 +5,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.openapi.utils import get_openapi
 from util.config import Env  # 確保環境變數被載入
+from util.supabase_client import SupabaseClient
 import secrets
 
 from API import basic_router, chip_router, chat_router, news_router, predict_router, stock_router, tech_router
@@ -81,6 +82,22 @@ def root():
 def health_check():
     """健康檢查，喚醒 API 用"""
     return {"status": "ok"}
+
+@app.get("/health/supabase")
+def supabase_keepalive():
+    """Supabase 健康檢查，給 cron job 週期喚醒使用。"""
+    try:
+        client = SupabaseClient.get_client()
+        response = client.table("stockScores").select("stock_id").limit(1).execute()
+        rows = getattr(response, "data", []) or []
+        return {
+            "status": "ok",
+            "service": "supabase",
+            "reachable": True,
+            "sample_rows": len(rows),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Supabase keepalive failed: {str(e)}")
 
 # FastAPI 初始化
 if __name__ == '__main__':
