@@ -81,7 +81,7 @@ async def remove_conversation(conversation_id: str, authorization: Optional[str]
 
 
 @router.post("/chatBot")
-@log_print
+@log_print(label="API")
 @add_runtime
 async def ask(req: ChatRequest, authorization: Optional[str] = Header(None)):
     """非串流聊天 API；登入時會讀取上下文並儲存 user/assistant 訊息。"""
@@ -108,7 +108,7 @@ async def ask(req: ChatRequest, authorization: Optional[str] = Header(None)):
 
 
 @router.post("/chatBot/stream")
-@log_print
+@log_print(label="API")
 async def ask_stream(req: ChatRequest, authorization: Optional[str] = Header(None)):
     """串流聊天 API；登入時先存 user，串流完成後再存 assistant。"""
     user = _auth_user(authorization)

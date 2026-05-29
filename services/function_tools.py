@@ -156,7 +156,7 @@ def _tool_call_id(item) -> str | None:
 
 
 @function_tool
-@log_print
+@log_print(label="ToolCall")
 async def toolQueryStock(keyword: str) -> str:
     """
     股票代號&名稱查詢。
@@ -175,8 +175,8 @@ async def toolQueryStock(keyword: str) -> str:
         return f"Error query stock info: {keyword}!"
 
 @function_tool
-@log_print
-async def toolGetStockPrice(symbol: str, start: str, sdf_indicator_list: list[str]=[] ) -> str:
+@log_print(label="ToolCall")
+async def toolGetStockPrice(symbol: str, start: str, sdf_indicator_list: list[str] | None = None) -> str:
     """
     抓取 Yahoo Finance 的歷史股價資料與籌碼面資料。
     指數代號：（成交量單位為「億元」）
@@ -195,13 +195,14 @@ async def toolGetStockPrice(symbol: str, start: str, sdf_indicator_list: list[st
     """
     from services.stock_data import getStockPrice
     try:
+        sdf_indicator_list = sdf_indicator_list or []
         data = getStockPrice(symbol, start, sdf_indicator_list)
         return data.to_string()
     except Exception as e:
         return f"Error fetching data for {symbol}!"
 
 @function_tool
-@log_print
+@log_print(label="ToolCall")
 async def toolFetchStockNews(stock_name: str) -> str:
     """
     爬取指定股票的最新新聞資料。
@@ -220,7 +221,7 @@ async def toolFetchStockNews(stock_name: str) -> str:
         return f"Error fetching news for {stock_name}"
 
 @function_tool
-@log_print
+@log_print(label="ToolCall")
 async def toolFetchTwiiNews() -> str:
     """
     爬取台灣加權指數(^TWII)與櫃買市場(^TWOII)的最新新聞。
@@ -237,7 +238,7 @@ async def toolFetchTwiiNews() -> str:
         return f"Error fetching TWII news"
 
 @function_tool
-@log_print
+@log_print(label="ToolCall")
 async def toolFetchETFIngredients(ETF_name: str) -> str:
     """
     查詢 ETF 的成分股。
