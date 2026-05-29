@@ -5,6 +5,7 @@ from util.logger import log_print
 from util.api_decorator import add_runtime
 from util.nowtime import TaiwanTime
 from util.data_manager import DataManager
+from util.numpy_extension import nan_to_none
 from util.stock_list import StockList
 
 from services.news_data import stock_news_split_word, news_summary
@@ -29,7 +30,7 @@ def get_all_news_summary(stock_id: str, page: int = 1):
     取得指定股票「新聞」資料的摘要。
     """
     news_summary_df = news_summary(stock_id, page=page)
-    result = news_summary_df.to_dict(orient='records')
+    result = nan_to_none(news_summary_df.to_dict(orient='records'))
     return JSONResponse(content={'news': result, 'updateTime': TaiwanTime.string()})
 
 @router.get("/score")
