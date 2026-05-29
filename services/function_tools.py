@@ -39,7 +39,19 @@ class WebAgent(Agent):
             tools=[WebSearchTool(UserLocation(type="approximate", country="TW"), search_context_size='low')]
         )
 
-async def ask_AI_Agent(question: str, model: str, session_id: str = str(uuid.uuid4()) ) -> str:
+def _agent_input(question: str, history_messages: list[dict] | None = None):
+    """有歷史上下文時直接交給 Agent，否則使用單次問題字串。"""
+    if history_messages:
+        return history_messages
+    return question
+
+
+async def ask_AI_Agent(
+    question: str,
+    model: str,
+    session_id: str = str(uuid.uuid4()),
+    history_messages: list[dict] | None = None,
+) -> str:
     """
     詢問 AI 並獲得回應。
     Args:
@@ -49,12 +61,98 @@ async def ask_AI_Agent(question: str, model: str, session_id: str = str(uuid.uui
     Returns:
         str: AI 的回應內容。
     """
-    session = await trim_session(session_id)
-    result = await Runner.run(FinAgent(model=model), 
-                              input= question, 
-                              session= session, 
-                              max_turns= 10)
+    session = None if history_messages else await trim_session(session_id)
+    result = await Runner.run(FinAgent(model=model),
+                              input=_agent_input(question, history_messages),
+                              session=session,
+                              max_turns=10)
     return result.final_output
+
+
+async def stream_AI_Agent(
+    question: str,
+    model: str,
+    session_id: str = str(uuid.uuid4()),
+    history_messages: list[dict] | None = None,
+):
+    """
+    串流詢問 AI，逐步 yield delta 文字與工具狀態事件。
+    """
+    session = None if history_messages else await trim_session(session_id)
+    result = Runner.run_streamed(FinAgent(model=model),
+                                 input=_agent_input(question, history_messages),
+                                 session=session,
+                                 max_turns=10)
+    tool_names_by_call_id = {}
+
+    async for event in result.stream_events():
+        if event.type == "run_item_stream_event":
+            if event.name in {"tool_called", "tool_search_called"}:
+                tool_name = _tool_label(event.item)
+                call_id = _tool_call_id(event.item)
+                if call_id:
+                    tool_names_by_call_id[call_id] = tool_name
+                yield {
+                    "type": "status",
+                    "message": f"正在使用工具：{tool_name}",
+                    "tool": tool_name,
+                    "phase": "started",
+                }
+            elif event.name in {"tool_output", "tool_search_output_created"}:
+                tool_name = tool_names_by_call_id.get(_tool_call_id(event.item)) or _tool_label(event.item)
+                yield {
+                    "type": "status",
+                    "message": f"工具完成：{tool_name}",
+                    "tool": tool_name,
+                    "phase": "finished",
+                }
+            continue
+
+        if event.type != "raw_response_event":
+            continue
+
+        data = event.data
+        if getattr(data, "type", "") == "response.output_text.delta":
+            yield {"type": "delta", "delta": getattr(data, "delta", "")}
+
+
+def _tool_label(item) -> str:
+    """從 Agents SDK 的 tool event 中盡量取出可讀的工具名稱。"""
+    title = getattr(item, "title", None)
+    if title:
+        return title
+
+    raw_item = getattr(item, "raw_item", None)
+    name = getattr(raw_item, "name", None)
+    if name:
+        return name
+
+    tool_origin = getattr(item, "tool_origin", None)
+    origin_name = getattr(tool_origin, "agent_tool_name", None) or getattr(tool_origin, "name", None)
+    if origin_name:
+        return origin_name
+
+    if isinstance(raw_item, dict):
+        raw_name = raw_item.get("name") or raw_item.get("tool_name")
+        if raw_name:
+            return raw_name
+        return raw_item.get("type") or "工具"
+
+    return "工具"
+
+
+def _tool_call_id(item) -> str | None:
+    """取得工具呼叫 ID，用來把 tool_called 與 tool_output 對應起來。"""
+    raw_item = getattr(item, "raw_item", None)
+
+    call_id = getattr(raw_item, "call_id", None)
+    if call_id:
+        return call_id
+
+    if isinstance(raw_item, dict):
+        return raw_item.get("call_id") or raw_item.get("id")
+
+    return None
 
 
 @function_tool
